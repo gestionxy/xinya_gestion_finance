@@ -58,7 +58,7 @@ export const MonthlyPurchaseChart: React.FC<Props> = ({ data, departments }) => 
     return data.map(item => {
       const flatItem: any = { month: item.month, total: item.totalMonthlyAmount || item.totalAmount };
       departments.forEach(dept => {
-        flatItem[dept] = item.byDepartment[dept] || 0;
+        flatItem[dept] = item.byDepartment[dept];
       });
       return flatItem;
     });

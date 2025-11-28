@@ -54,7 +54,7 @@ export const WeeklyDeptChart: React.FC<Props> = ({ data, departments, selectedMo
     return data.map(item => {
       const flatItem: any = { week: item.weekRange, weekStart: item.weekStart, total: item.totalWeeklyAmount || item.totalAmount };
       departments.forEach(dept => {
-        flatItem[dept] = item.byDepartment[dept] || 0;
+        flatItem[dept] = item.byDepartment[dept];
       });
       return flatItem;
     });

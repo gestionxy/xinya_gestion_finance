@@ -98,7 +98,6 @@ export const CompanyWeekChart: React.FC<Props> = ({ data, department }) => {
               name={comp}
               stroke={COLORS[index % COLORS.length]}
               strokeWidth={2}
-              connectNulls
               dot={{ r: 4 }}
             />
           ))}
