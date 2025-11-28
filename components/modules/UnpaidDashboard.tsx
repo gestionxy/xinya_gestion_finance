@@ -56,13 +56,13 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
                             <td className="px-6 py-4 font-mono text-scifi-text">{row.invoiceNumber}</td>
                             <td className="px-6 py-4 font-mono text-gray-400">{row.invoiceDate}</td>
                             <td className="px-6 py-4 text-right font-mono text-scifi-danger font-bold">
-                                ${row.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ${(row.invoiceAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 text-right font-mono text-gray-500">
-                                ${(row.amount * 0.05).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ${(row.tps || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 text-right font-mono text-gray-500">
-                                ${(row.amount * 0.09975).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ${(row.tvq || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                         </tr>
                     ))}
