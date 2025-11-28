@@ -46,6 +46,7 @@ const App: React.FC = () => {
   const [selectedDept, setSelectedDept] = useState<string>('');
   const [selectedMultiDepts, setSelectedMultiDepts] = useState<string[]>([]); // For multi-select views
   const [cycleSort, setCycleSort] = useState<'MEDIAN' | 'AMOUNT'>('MEDIAN');
+  const [distribMode, setDistribMode] = useState<'MONTH' | 'RANGE'>('MONTH'); // New state for distribution mode
 
   // Date Range for Bubble Chart
   const [startDate, setStartDate] = useState<string>('');
@@ -186,6 +187,19 @@ const App: React.FC = () => {
     // Use selectedMultiDepts for charts that support it
     const displayDepts = selectedMultiDepts.length > 0 ? selectedMultiDepts : [];
 
+    // Helper to get date range for distribution
+    const getDistributionRange = () => {
+      if (distribMode === 'MONTH') {
+        if (!selectedMonth) return [new Date(), new Date()];
+        const [y, m] = selectedMonth.split('-').map(Number);
+        const start = new Date(y, m - 1, 1);
+        const end = new Date(y, m, 0); // Last day of month
+        return [start, end];
+      } else {
+        return [new Date(startDate), new Date(endDate)];
+      }
+    };
+
     switch (currentView) {
       // --- Purchase Module ---
       case 'MONTHLY_DEPT':
@@ -205,13 +219,15 @@ const App: React.FC = () => {
         return <CompanyWeekChart key={`weekly-comp-${safeMonthComp}-${selectedDept}`} data={companyWeeklyData} department={selectedDept} />;
 
       case 'COMPANY_DISTRIBUTION':
+        const [distStart, distEnd] = getDistributionRange();
         const { chartData, sortedCompanies } = getCompanyBubbleData(
           data,
           selectedDept,
           selectedBubbleCompanies,
-          [new Date(startDate), new Date(endDate)]
+          [distStart, distEnd]
         );
-        return <DistributionChart key={`distrib-${selectedDept}-${startDate}-${endDate}`} data={chartData} sortedCompanies={sortedCompanies} />;
+        // Add mode to key to force re-render
+        return <DistributionChart key={`distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={chartData} sortedCompanies={sortedCompanies} />;
 
       // --- Unpaid Module ---
       case 'UNPAID_DEPT':
@@ -239,22 +255,19 @@ const App: React.FC = () => {
 
       case 'PAYMENT_COMPANY_WEEKLY':
         // Reuse CompanyWeekChart but pass paid data structure
-        // Need to filter processedData manually first if using getWeeklyPaidSummary internally?
-        // getWeeklyPaidSummary filters internally by month.
-        // But for Company view we need Dept filter too.
-        // Let's create filtered subset first.
         const filteredPaidCompany = processedData.filter(r => r.department === selectedDept);
         const companyPaidWeeklyData = getWeeklyPaidSummary(filteredPaidCompany, selectedMonth);
         return <CompanyWeekChart key={`payment-comp-${selectedMonth}-${selectedDept}`} data={companyPaidWeeklyData} department={selectedDept} />;
 
       case 'PAYMENT_DISTRIBUTION':
+        const [payDistStart, payDistEnd] = getDistributionRange();
         const { chartData: paidBubble, sortedCompanies: paidSorted } = getPaidCompanyBubbleData(
           processedData,
           selectedDept,
           selectedBubbleCompanies,
-          [new Date(startDate), new Date(endDate)]
+          [payDistStart, payDistEnd]
         );
-        return <DistributionChart key={`payment-distrib-${selectedDept}-${startDate}-${endDate}`} data={paidBubble} sortedCompanies={paidSorted} />;
+        return <DistributionChart key={`payment-distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={paidBubble} sortedCompanies={paidSorted} />;
 
       default:
         return null;
@@ -438,7 +451,7 @@ const App: React.FC = () => {
                 {/* CONTROLS BASED ON VIEW */}
 
                 {/* 1. Global Dept/Month Selectors (Used in multiple views) */}
-                {['WEEKLY_DEPT', 'WEEKLY_COMPANY', 'COMPANY_DISTRIBUTION', 'PAYMENT_WEEKLY', 'PAYMENT_COMPANY_WEEKLY', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
+                {['WEEKLY_DEPT', 'WEEKLY_COMPANY', 'PAYMENT_WEEKLY', 'PAYMENT_COMPANY_WEEKLY'].includes(currentView) && (
                   <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
                 )}
 
@@ -478,17 +491,43 @@ const App: React.FC = () => {
                   </>
                 )}
 
-                {/* DISTRIBUTION Specific */}
+                {/* DISTRIBUTION Specific Controls */}
                 {['COMPANY_DISTRIBUTION', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
                   <>
+                    {/* Mode Toggle */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.startDate}</label>
-                      <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
+                      <label className="text-xs text-scifi-accent font-mono uppercase">时间范围模式</label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setDistribMode('MONTH')}
+                          className={`flex-1 py-1.5 text-xs rounded border transition-colors ${distribMode === 'MONTH' ? 'bg-scifi-primary/20 border-scifi-primary text-scifi-primary' : 'border-scifi-border text-gray-400 hover:bg-white/5'}`}
+                        >
+                          按月份
+                        </button>
+                        <button
+                          onClick={() => setDistribMode('RANGE')}
+                          className={`flex-1 py-1.5 text-xs rounded border transition-colors ${distribMode === 'RANGE' ? 'bg-scifi-primary/20 border-scifi-primary text-scifi-primary' : 'border-scifi-border text-gray-400 hover:bg-white/5'}`}
+                        >
+                          按日期
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.endDate}</label>
-                      <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
-                    </div>
+
+                    {/* Conditional Inputs */}
+                    {distribMode === 'MONTH' ? (
+                      <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.startDate}</label>
+                          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.endDate}</label>
+                          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
