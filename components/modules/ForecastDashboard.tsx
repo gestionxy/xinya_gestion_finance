@@ -104,7 +104,9 @@ export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSu
                         <ArrowLeft className="w-4 h-4" /> {chartView === 'COMPANY' ? 'Back to Departments' : 'Back to Dashboard'}
                     </button>
                     {chartView === 'COMPANY' && (
-                        <span className="text-scifi-primary font-bold">{selectedChartDept}</span>
+                        <div className="px-4 py-2 bg-scifi-primary/20 border border-scifi-primary/50 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                            <span className="text-xl font-bold text-scifi-primary tracking-wide">{selectedChartDept}</span>
+                        </div>
                     )}
                 </div>
                 <GlassCard className="border-scifi-primary/30">

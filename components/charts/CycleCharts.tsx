@@ -143,9 +143,23 @@ export const ForecastChart: React.FC<ForecastProps> = ({ data, view, selectedDep
             }}
             cursor={onBarClick ? "pointer" : "default"}
           >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={`hsl(200, 90%, ${50 + (index * 3)}%)`} cursor={onBarClick ? "pointer" : "default"} />
-            ))}
+            {chartData.map((entry, index) => {
+              // Varied Palette: Cyan, Purple, Pink, Orange, Emerald, Blue, Yellow, Indigo, Red, Teal
+              const colors = [
+                '#06b6d4', // Cyan
+                '#8b5cf6', // Purple
+                '#ec4899', // Pink
+                '#f97316', // Orange
+                '#10b981', // Emerald
+                '#3b82f6', // Blue
+                '#eab308', // Yellow
+                '#6366f1', // Indigo
+                '#ef4444', // Red
+                '#14b8a6', // Teal
+              ];
+              const color = colors[index % colors.length];
+              return <Cell key={`cell-${index}`} fill={color} cursor={onBarClick ? "pointer" : "default"} />;
+            })}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
