@@ -46,7 +46,7 @@ export const translations = {
       unpaidCompTitle: '公司应付未付明细',
       cycleAnalysis: '付款周期指标 (中位数)',
       forecastTotal: '近期应付款预测总额',
-      forecastTitle: '本周应付款项概览1111',
+      forecastTitle: '付款预测&付款/未付详情查询',
       paymentMonthlyTitle: '各部门每月实际付款金额',
       paymentWeeklyTitle: '各部门每周实际付款金额',
       paymentCompTitle: '各公司每周付款状态',
