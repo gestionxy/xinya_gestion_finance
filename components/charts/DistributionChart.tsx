@@ -28,7 +28,8 @@ export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies }) =>
       return (
         <div className="bg-slate-900 border border-scifi-border p-3 rounded text-xs shadow-2xl z-50">
           <div className="font-bold text-scifi-primary mb-1">公司名称：{data.companyName}</div>
-          <div className="text-gray-400 mb-1">周范围：{data.weekRange}</div>
+          <div className="text-gray-400 mb-1">日期：{data.weekRange}</div>
+          <div className="text-gray-400 mb-1">交易笔数：{data.invoiceCount} 笔</div>
           <div className="text-white font-mono">
             采购金额：<span className="text-scifi-accent">{data.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
@@ -46,7 +47,7 @@ export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies }) =>
           <XAxis
             type="number"
             dataKey="x"
-            name="Week"
+            name="Date"
             domain={['auto', 'auto']}
             tickFormatter={(unixTime) => new Date(unixTime).toISOString().slice(0, 10)}
             stroke="#94a3b8"

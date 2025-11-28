@@ -64,6 +64,7 @@ export interface CompanyBubbleData {
   weekRange: string;
   amount: number; // Size/Z-axis
   totalCompanyAmount: number; // For sorting Y-axis
+  invoiceCount?: number; // Number of invoices in this group
 }
 
 export interface UnpaidSummary {

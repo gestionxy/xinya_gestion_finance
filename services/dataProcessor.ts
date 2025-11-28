@@ -240,37 +240,29 @@ export const getCompanyBubbleData = (
     return inDate && inDept && inCompany;
   });
 
-  // 2. Group by Company, WeekStart
+  // 2. Group by Company, Invoice Date
   const grouped: Record<string, CompanyBubbleData> = {};
 
   // 3. Calculate Company Totals for Top 20 Logic
   const companyTotals: Record<string, number> = {};
 
   filtered.forEach(r => {
-    // Strict Monday Start Logic
-    const date = parseISO(r.invoiceDate);
-    const day = date.getDay();
-    const diff = (day === 0 ? 6 : day - 1);
-    const start = new Date(date);
-    start.setDate(date.getDate() - diff);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-
-    const weekStartStr = format(start, 'yyyy-MM-dd');
-    const weekRange = `${weekStartStr} ~ ${format(end, 'yyyy-MM-dd')}`;
-    const key = `${r.companyName}-${weekStartStr}`;
+    // Daily Logic
+    const dateStr = r.invoiceDate.slice(0, 10); // YYYY-MM-DD
+    const key = `${r.companyName}-${dateStr}`;
 
     if (!grouped[key]) {
       grouped[key] = {
         companyName: r.companyName,
-        weekStart: weekStartStr,
-        weekRange: weekRange,
+        weekStart: dateStr, // Reusing field for Date
+        weekRange: dateStr, // Reusing field for Date Display
         amount: 0,
-        totalCompanyAmount: 0
+        totalCompanyAmount: 0,
+        invoiceCount: 0 // New field
       };
     }
     grouped[key].amount += r.invoiceAmount;
+    grouped[key].invoiceCount = (grouped[key].invoiceCount || 0) + 1;
 
     if (!companyTotals[r.companyName]) companyTotals[r.companyName] = 0;
     companyTotals[r.companyName] += r.invoiceAmount;
@@ -291,22 +283,17 @@ export const getCompanyBubbleData = (
   }
 
   // 5. Filter grouped data to only include Top 20 companies
-  // AND Filter out amount <= 0 (as per user request: scatter_df = scatter_df[scatter_df['发票金额'] > 0])
+  // AND Filter out amount <= 0
   const result = Object.values(grouped).filter(item =>
     companiesToShow.includes(item.companyName) && item.amount > 0
   );
 
-  // 6. Sort companies by Total Amount (Small to Large for Y-axis plotting usually, but user said "Large to Small" in text but code says "ascending=True" for category order?)
-  // User code: 
-  // company_order = scatter_df.groupby("公司名称")["发票金额"].sum().sort_values(ascending=True).index.tolist()
-  // fig.update_layout(yaxis=dict(categoryorder="array", categoryarray=company_order))
-  // So we need Ascending order for the array passed to categoryarray.
-
+  // 6. Sort companies by Total Amount (Small to Large for Y-axis plotting)
   const sortedCompanyList = companiesToShow.sort((a, b) => {
     return companyTotals[a] - companyTotals[b]; // Ascending
   });
 
-  // Attach total company amount to each item (if needed for tooltip)
+  // Attach total company amount
   const finalResult = result.map(item => ({
     ...item,
     totalCompanyAmount: companyTotals[item.companyName]
