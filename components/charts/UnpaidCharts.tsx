@@ -81,9 +81,10 @@ export const UnpaidDeptChart: React.FC<DeptProps> = ({ data, onBarClick }) => {
 interface CompProps {
   data: UnpaidSummary;
   selectedDept: string;
+  onBarClick?: (companyName: string) => void;
 }
 
-export const UnpaidCompanyChart: React.FC<CompProps> = ({ data, selectedDept }) => {
+export const UnpaidCompanyChart: React.FC<CompProps> = ({ data, selectedDept, onBarClick }) => {
   const chartData = useMemo(() => {
     const companies = data.byDeptCompany[selectedDept] || {};
     let arr = Object.entries(companies)
@@ -121,10 +122,20 @@ export const UnpaidCompanyChart: React.FC<CompProps> = ({ data, selectedDept }) 
             tick={{ fontSize: 11, fontFamily: 'JetBrains Mono', fill: '#e2e8f0' }}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff10' }} />
-          <Bar dataKey="amount" name="Unpaid Amount" radius={[0, 4, 4, 0]}>
+          <Bar
+            dataKey="amount"
+            name="Unpaid Amount"
+            radius={[0, 4, 4, 0]}
+            onClick={(data) => {
+              if (onBarClick && data && data.name) {
+                onBarClick(data.name);
+              }
+            }}
+            cursor={onBarClick ? "pointer" : "default"}
+          >
             {chartData.map((entry, index) => (
               // Gradient Blue scale for Companies
-              <Cell key={`cell-${index}`} fill={`hsl(210, 80%, ${50 + (index * 2)}%)`} />
+              <Cell key={`cell-${index}`} fill={`hsl(210, 80%, ${50 + (index * 2)}%)`} cursor={onBarClick ? "pointer" : "default"} />
             ))}
           </Bar>
         </BarChart>
