@@ -518,8 +518,8 @@ export const getPaymentCycleMetrics = (processedData: PurchaseRecord[]): Payment
 // Forecast Logic
 // ------------------------------------------------------------------
 export const getPaymentForecast = (processedData: PurchaseRecord[], metrics: PaymentCycleMetric[]): ForecastSummary => {
-  // 1. Get Unpaid records
-  const unpaidRecords = processedData.filter(r => (r.unpaid || 0) > 0.01);
+  // 1. Get Unpaid records (Include negatives/overpayments, match Python != 0)
+  const unpaidRecords = processedData.filter(r => Math.abs(r.unpaid || 0) > 0.01);
 
   // 2. Map metrics for fast lookup
   const metricsMap: Record<string, number> = {}; // "Dept|Company" -> Median Days
@@ -534,18 +534,25 @@ export const getPaymentForecast = (processedData: PurchaseRecord[], metrics: Pay
 
   // 3. Enrich with prediction
   const predictions: PredictedPayment[] = unpaidRecords.map(r => {
-    const medianDays = metricsMap[`${r.department}|${r.companyName}`] || 0; // Default to 0 if no history
-    const invoiceDate = parseISO(r.invoiceDate);
-    const predictedDate = addDays(invoiceDate, medianDays);
+    const hasHistory = metricsMap.hasOwnProperty(`${r.department}|${r.companyName}`);
+    const medianDays = hasHistory ? metricsMap[`${r.department}|${r.companyName}`] : null;
 
-    // Due logic: Predicted date <= End of current week
-    // Note: Python logic uses `dt.date <= end_of_week`. 
-    const isDue = predictedDate <= endOfCurrentWeek;
+    const invoiceDate = parseISO(r.invoiceDate);
+
+    let predictedDate = '';
+    let isDue = false;
+
+    if (medianDays !== null) {
+      const pDate = addDays(invoiceDate, medianDays);
+      predictedDate = pDate.toISOString();
+      // Due logic: Predicted date <= End of current week
+      isDue = pDate <= endOfCurrentWeek;
+    }
 
     return {
       ...r,
-      medianDays,
-      predictedDate: predictedDate.toISOString(),
+      medianDays: medianDays ?? 0, // Keep 0 for display if null, or handle in UI
+      predictedDate: predictedDate, // Empty string if no prediction
       isDueThisWeek: isDue,
       unpaidAmount: r.unpaid || 0
     } as PredictedPayment;
