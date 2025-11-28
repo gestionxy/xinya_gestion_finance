@@ -18,14 +18,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const year = label.split('-')[0];
     const month = label.split('-')[1];
 
+    // Sort payload by value descending
+    const sortedPayload = [...payload].sort((a: any, b: any) => b.value - a.value);
+
     return (
-      <div className="bg-scifi-bg/95 border border-scifi-border p-3 rounded shadow-xl backdrop-blur-md text-xs z-50">
+      <div className="bg-slate-900 border border-scifi-border p-3 rounded shadow-xl text-xs z-50">
         <div className="font-mono text-scifi-accent mb-2 border-b border-scifi-border pb-1">
           🔹 {year}年{month}月 <br />
           总采购金额：{total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </div>
         <div className="flex flex-col gap-2">
-          {payload.map((entry: any, index: number) => {
+          {sortedPayload.map((entry: any, index: number) => {
             const amount = entry.value;
             const percent = total > 0 ? amount / total : 0;
             return (

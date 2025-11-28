@@ -26,7 +26,7 @@ export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies }) =>
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-scifi-bg/95 border border-scifi-border p-3 rounded backdrop-blur-md text-xs shadow-2xl z-50">
+        <div className="bg-slate-900 border border-scifi-border p-3 rounded text-xs shadow-2xl z-50">
           <div className="font-bold text-scifi-primary mb-1">公司名称：{data.companyName}</div>
           <div className="text-gray-400 mb-1">周范围：{data.weekRange}</div>
           <div className="text-white font-mono">

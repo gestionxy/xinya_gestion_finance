@@ -172,16 +172,16 @@ const App: React.FC = () => {
       // --- Purchase Module ---
       case 'MONTHLY_DEPT':
         const monthlyData = getMonthlySummary(data);
-        return <MonthlyPurchaseChart data={monthlyData} departments={sortedDepartments} />;
+        return <MonthlyPurchaseChart key="monthly-dept" data={monthlyData} departments={sortedDepartments} />;
 
       case 'WEEKLY_DEPT':
         const weeklyData = getWeeklySummary(data, selectedMonth);
-        return <WeeklyDeptChart data={weeklyData} departments={sortedDepartments} selectedMonth={selectedMonth} />;
+        return <WeeklyDeptChart key={`weekly-dept-${selectedMonth}`} data={weeklyData} departments={sortedDepartments} selectedMonth={selectedMonth} />;
 
       case 'WEEKLY_COMPANY':
         const filteredForCompany = data.filter(r => r.department === selectedDept && r.invoiceDate.startsWith(selectedMonth));
         const companyWeeklyData = getWeeklySummary(filteredForCompany);
-        return <CompanyWeekChart data={companyWeeklyData} department={selectedDept} />;
+        return <CompanyWeekChart key={`weekly-comp-${selectedMonth}-${selectedDept}`} data={companyWeeklyData} department={selectedDept} />;
 
       case 'COMPANY_DISTRIBUTION':
         const { chartData, sortedCompanies } = getCompanyBubbleData(
@@ -190,31 +190,31 @@ const App: React.FC = () => {
           selectedBubbleCompanies,
           [new Date(startDate), new Date(endDate)]
         );
-        return <DistributionChart data={chartData} sortedCompanies={sortedCompanies} />;
+        return <DistributionChart key={`distrib-${selectedDept}-${startDate}-${endDate}`} data={chartData} sortedCompanies={sortedCompanies} />;
 
       // --- Unpaid Module ---
       case 'UNPAID_DEPT':
-        return <UnpaidDeptChart data={unpaidSummary} />;
+        return <UnpaidDeptChart key="unpaid-dept" data={unpaidSummary} />;
 
       case 'UNPAID_COMPANY':
         const safeDept = unpaidDepartments.includes(selectedDept) ? selectedDept : unpaidDepartments[0] || selectedDept;
-        return <UnpaidCompanyChart data={unpaidSummary} selectedDept={safeDept} />;
+        return <UnpaidCompanyChart key={`unpaid-comp-${safeDept}`} data={unpaidSummary} selectedDept={safeDept} />;
 
       // --- Cycle Module ---
       case 'CYCLE_ANALYSIS':
-        return <PaymentCycleBarChart data={cycleMetrics} sortBy={cycleSort} />;
+        return <PaymentCycleBarChart key={`cycle-${cycleSort}`} data={cycleMetrics} sortBy={cycleSort} />;
 
       case 'CYCLE_FORECAST':
-        return <ForecastChart data={forecastSummary} view="DEPT" />;
+        return <ForecastChart key="forecast" data={forecastSummary} view="DEPT" />;
 
       // --- Payment Module (Uses Processed Data - Paid Only) ---
       case 'PAYMENT_MONTHLY':
         const monthlyPaidData = getMonthlyPaidSummary(processedData);
-        return <MonthlyPurchaseChart data={monthlyPaidData} departments={sortedDepartments} />;
+        return <MonthlyPurchaseChart key="payment-monthly" data={monthlyPaidData} departments={sortedDepartments} />;
 
       case 'PAYMENT_WEEKLY':
         const weeklyPaidData = getWeeklyPaidSummary(processedData, selectedMonth);
-        return <WeeklyDeptChart data={weeklyPaidData} departments={sortedDepartments} selectedMonth={selectedMonth} />;
+        return <WeeklyDeptChart key={`payment-weekly-${selectedMonth}`} data={weeklyPaidData} departments={sortedDepartments} selectedMonth={selectedMonth} />;
 
       case 'PAYMENT_COMPANY_WEEKLY':
         // Reuse CompanyWeekChart but pass paid data structure
@@ -224,7 +224,7 @@ const App: React.FC = () => {
         // Let's create filtered subset first.
         const filteredPaidCompany = processedData.filter(r => r.department === selectedDept);
         const companyPaidWeeklyData = getWeeklyPaidSummary(filteredPaidCompany, selectedMonth);
-        return <CompanyWeekChart data={companyPaidWeeklyData} department={selectedDept} />;
+        return <CompanyWeekChart key={`payment-comp-${selectedMonth}-${selectedDept}`} data={companyPaidWeeklyData} department={selectedDept} />;
 
       case 'PAYMENT_DISTRIBUTION':
         const { chartData: paidBubble, sortedCompanies: paidSorted } = getPaidCompanyBubbleData(
@@ -233,7 +233,7 @@ const App: React.FC = () => {
           selectedBubbleCompanies,
           [new Date(startDate), new Date(endDate)]
         );
-        return <DistributionChart data={paidBubble} sortedCompanies={paidSorted} />;
+        return <DistributionChart key={`payment-distrib-${selectedDept}-${startDate}-${endDate}`} data={paidBubble} sortedCompanies={paidSorted} />;
 
       default:
         return null;
