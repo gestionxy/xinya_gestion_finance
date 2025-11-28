@@ -60,8 +60,7 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
     const checkSearchList = useMemo(() => {
         if (!filterValue) return [];
         return historyData.filter(r =>
-            (r.checkNumber || '').toLowerCase().includes(filterValue.toLowerCase()) ||
-            (r.remarks || '').toLowerCase().includes(filterValue.toLowerCase())
+            (r.checkNumber || '') === filterValue // Exact match only
         ).sort((a, b) => (b.checkDate || '').localeCompare(a.checkDate || ''));
     }, [historyData, filterValue]);
 
