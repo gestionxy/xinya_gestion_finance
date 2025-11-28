@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Activity, DollarSign, PieChart, ShieldCheck, Menu, Database, AlertTriangle, Globe, Clock, BarChart2, TrendingDown } from 'lucide-react';
 import {
@@ -19,6 +18,7 @@ import { supabase, mapDbToPurchaseRecord } from './services/supabase';
 import { ChartViewType, PurchaseRecord, Language } from './types';
 import { GlassCard } from './components/ui/GlassCard';
 import { Select } from './components/ui/Select';
+import { MultiSelect } from './components/ui/MultiSelect';
 import { MonthlyPurchaseChart } from './components/charts/MonthlyPurchaseChart';
 import { WeeklyDeptChart } from './components/charts/WeeklyDeptChart';
 import { CompanyWeekChart } from './components/charts/CompanyWeekChart';
@@ -44,6 +44,7 @@ const App: React.FC = () => {
   // Filters State
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
+  const [selectedMultiDepts, setSelectedMultiDepts] = useState<string[]>([]); // For multi-select views
   const [cycleSort, setCycleSort] = useState<'MEDIAN' | 'AMOUNT'>('MEDIAN');
 
   // Date Range for Bubble Chart
@@ -100,7 +101,12 @@ const App: React.FC = () => {
         // Set defaults
         const months = Array.from(new Set(cleaned.map(r => r.invoiceDate.slice(0, 7)))).sort();
         if (months.length > 0) {
-          setSelectedMonth(months[months.length - 1]); // Last month default
+          const currentMonth = format(new Date(), 'yyyy-MM');
+          if (months.includes(currentMonth)) {
+            setSelectedMonth(currentMonth);
+          } else {
+            setSelectedMonth(months[months.length - 1]); // Fallback to last available
+          }
         }
 
         const { departments, defaultIndex } = getOrderedDepartments(cleaned);
@@ -138,6 +144,15 @@ const App: React.FC = () => {
   const sortedDepartments = useMemo(() => getOrderedDepartments(data).departments, [data]);
   const availableMonths = useMemo(() => Array.from(new Set(data.map(r => r.invoiceDate.slice(0, 7)))).sort(), [data]);
 
+  // Initialize Multi-Select with all departments when data loads
+  useEffect(() => {
+    if (sortedDepartments.length > 0) {
+      if (selectedMultiDepts.length === 0) {
+        setSelectedMultiDepts(sortedDepartments);
+      }
+    }
+  }, [sortedDepartments]);
+
   // Data for Unpaid (Using processedData)
   const unpaidSummary = useMemo(() => getUnpaidSummary(processedData), [processedData]);
 
@@ -168,17 +183,20 @@ const App: React.FC = () => {
   const renderChart = () => {
     if (loading) return <div className="h-96 flex items-center justify-center text-scifi-primary animate-pulse">{t.alerts.loading}</div>;
 
+    // Use selectedMultiDepts for charts that support it
+    const displayDepts = selectedMultiDepts.length > 0 ? selectedMultiDepts : [];
+
     switch (currentView) {
       // --- Purchase Module ---
       case 'MONTHLY_DEPT':
         const monthlyData = getMonthlySummary(data);
-        return <MonthlyPurchaseChart key="monthly-dept" data={monthlyData} departments={sortedDepartments} />;
+        return <MonthlyPurchaseChart key="monthly-dept" data={monthlyData} departments={displayDepts} />;
 
       case 'WEEKLY_DEPT':
         // Ensure we have a selected month, otherwise default to the last available month
         const safeMonth = selectedMonth || availableMonths[availableMonths.length - 1] || '';
         const weeklyData = getWeeklySummary(data, safeMonth);
-        return <WeeklyDeptChart key={`weekly-dept-${safeMonth}`} data={weeklyData} departments={sortedDepartments} selectedMonth={safeMonth} />;
+        return <WeeklyDeptChart key={`weekly-dept-${safeMonth}`} data={weeklyData} departments={displayDepts} selectedMonth={safeMonth} />;
 
       case 'WEEKLY_COMPANY':
         const safeMonthComp = selectedMonth || availableMonths[availableMonths.length - 1] || '';
@@ -213,11 +231,11 @@ const App: React.FC = () => {
       // --- Payment Module (Uses Processed Data - Paid Only) ---
       case 'PAYMENT_MONTHLY':
         const monthlyPaidData = getMonthlyPaidSummary(processedData);
-        return <MonthlyPurchaseChart key="payment-monthly" data={monthlyPaidData} departments={sortedDepartments} />;
+        return <MonthlyPurchaseChart key="payment-monthly" data={monthlyPaidData} departments={displayDepts} />;
 
       case 'PAYMENT_WEEKLY':
         const weeklyPaidData = getWeeklyPaidSummary(processedData, selectedMonth);
-        return <WeeklyDeptChart key={`payment-weekly-${selectedMonth}`} data={weeklyPaidData} departments={sortedDepartments} selectedMonth={selectedMonth} />;
+        return <WeeklyDeptChart key={`payment-weekly-${selectedMonth}`} data={weeklyPaidData} departments={displayDepts} selectedMonth={selectedMonth} />;
 
       case 'PAYMENT_COMPANY_WEEKLY':
         // Reuse CompanyWeekChart but pass paid data structure
@@ -424,6 +442,16 @@ const App: React.FC = () => {
                   <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
                 )}
 
+                {/* Multi-Select for Dept Views */}
+                {['MONTHLY_DEPT', 'WEEKLY_DEPT', 'PAYMENT_MONTHLY', 'PAYMENT_WEEKLY'].includes(currentView) && (
+                  <MultiSelect
+                    label="选择部门 (多选)"
+                    options={sortedDepartments}
+                    selected={selectedMultiDepts}
+                    onChange={setSelectedMultiDepts}
+                  />
+                )}
+
                 {['WEEKLY_COMPANY', 'COMPANY_DISTRIBUTION', 'CYCLE_ANALYSIS', 'PAYMENT_COMPANY_WEEKLY', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
                   <Select label={t.control.deptSelect} options={sortedDepartments} value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} />
                 )}
@@ -476,7 +504,7 @@ const App: React.FC = () => {
           {/* Main Chart Area */}
           <div className="lg:col-span-3 space-y-6">
             <GlassCard className={`h-full min-h-[500px] 
-                    ${activeModule === 'UNPAID' ? 'border-scifi-danger/30' :
+              ${activeModule === 'UNPAID' ? 'border-scifi-danger/30' :
                 activeModule === 'CYCLE' ? 'border-scifi-warning/30' :
                   activeModule === 'PAYMENT' ? 'border-scifi-success/30' : ''}`}>
               <div className="flex items-center justify-between mb-6">
