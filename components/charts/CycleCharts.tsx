@@ -110,10 +110,11 @@ export const ForecastChart: React.FC<ForecastProps> = ({ data, historyData, view
       return Object.entries(data.byDeptCompany[selectedDept])
         .map(([name, amount]) => {
           // Enrich with details for Tooltip
-          const companyRecords = data.allRecords.filter(r => r.companyName === name);
-          const companyHistory = historyData ? historyData.filter(r => r.companyName === name && r.checkDate) : [];
+          // FIX: Filter by BOTH Company Name AND Selected Department to avoid cross-dept contamination
+          const companyRecords = data.allRecords.filter(r => r.companyName === name && r.department === selectedDept);
+          const companyHistory = historyData ? historyData.filter(r => r.companyName === name && r.department === selectedDept && r.checkDate) : [];
 
-          // 1. Median Days (Average of predicted payments for this company)
+          // 1. Median Days (Average of predicted payments for this company in this dept)
           const medianDays = companyRecords.length > 0
             ? companyRecords.reduce((sum, r) => sum + r.medianDays, 0) / companyRecords.length
             : 0;
