@@ -57,13 +57,36 @@ const App: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: dbData, error } = await supabase.from('finance_data').select('*');
+      let allData: any[] = [];
+      let from = 0;
+      const step = 1000;
+      let more = true;
 
-      if (error) {
-        console.error('Error fetching data:', error);
-        setLoading(false);
-        return;
+      while (more) {
+        const { data: chunk, error } = await supabase
+          .from('finance_data')
+          .select('*')
+          .range(from, from + step - 1);
+
+        if (error) {
+          console.error('Error fetching data:', error);
+          setLoading(false);
+          return;
+        }
+
+        if (chunk && chunk.length > 0) {
+          allData = [...allData, ...chunk];
+          from += step;
+          // If we got fewer rows than requested, we've reached the end
+          if (chunk.length < step) {
+            more = false;
+          }
+        } else {
+          more = false;
+        }
       }
+
+      const dbData = allData;
 
       if (dbData && dbData.length > 0) {
         const mappedData = dbData.map(mapDbToPurchaseRecord);
