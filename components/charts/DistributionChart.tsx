@@ -5,9 +5,10 @@ import { CompanyBubbleData } from '../../types';
 interface Props {
   data: CompanyBubbleData[];
   sortedCompanies: string[]; // Ordered by total amount (Small to Large for Y-axis Bottom to Top)
+  dateRange: [Date, Date]; // Start and End date for the axis
 }
 
-export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies }) => {
+export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies, dateRange }) => {
 
   // Recharts Scatter needs numeric X and Y.
   // X: Time (timestamp)
@@ -48,7 +49,7 @@ export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies }) =>
             type="number"
             dataKey="x"
             name="Date"
-            domain={['auto', 'auto']}
+            domain={[dateRange[0].getTime(), dateRange[1].getTime()]}
             tickFormatter={(unixTime) => new Date(unixTime).toISOString().slice(0, 10)}
             stroke="#94a3b8"
             tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }}

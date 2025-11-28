@@ -227,7 +227,7 @@ const App: React.FC = () => {
           [distStart, distEnd]
         );
         // Add mode to key to force re-render
-        return <DistributionChart key={`distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={chartData} sortedCompanies={sortedCompanies} />;
+        return <DistributionChart key={`distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={chartData} sortedCompanies={sortedCompanies} dateRange={[distStart, distEnd]} />;
 
       // --- Unpaid Module ---
       case 'UNPAID_DEPT':
@@ -267,7 +267,7 @@ const App: React.FC = () => {
           selectedBubbleCompanies,
           [payDistStart, payDistEnd]
         );
-        return <DistributionChart key={`payment-distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={paidBubble} sortedCompanies={paidSorted} />;
+        return <DistributionChart key={`payment-distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={paidBubble} sortedCompanies={paidSorted} dateRange={[payDistStart, payDistEnd]} />;
 
       default:
         return null;
