@@ -20,11 +20,16 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
 
     // Filter data for the detail table
     const detailData = React.useMemo(() => {
+        console.log('Filtering Details:', { selectedCompany, selectedDept, totalDetails: unpaidSummary.details?.length });
+
         if (!selectedCompany || !unpaidSummary.details) return [];
-        return unpaidSummary.details.filter(item =>
+
+        const filtered = unpaidSummary.details.filter(item =>
             item.companyName === selectedCompany &&
             item.department === selectedDept
         );
+        console.log('Filtered Results:', filtered.length);
+        return filtered;
     }, [unpaidSummary, selectedCompany, selectedDept]);
 
     const renderDetailTable = () => (
