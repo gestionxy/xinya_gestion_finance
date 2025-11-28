@@ -26,7 +26,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           周总采购金额：{total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </div>
         <div className="flex flex-col gap-2">
-          {sortedPayload.map((entry: any, index: number) => {
+          {sortedPayload.filter((e: any) => e.value > 0).map((entry: any, index: number) => {
             const amount = entry.value;
             const percent = total > 0 ? amount / total : 0;
             return (

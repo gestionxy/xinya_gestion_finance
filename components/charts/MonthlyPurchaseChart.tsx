@@ -24,11 +24,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="bg-slate-900 border border-scifi-border p-3 rounded shadow-xl text-xs z-50">
         <div className="font-mono text-scifi-accent mb-2 border-b border-scifi-border pb-1">
-          🔹 {year}年{month}月 <br />
+          🔹 {year}年{month} <br />
           总采购金额：{total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </div>
         <div className="flex flex-col gap-2">
-          {sortedPayload.map((entry: any, index: number) => {
+          {sortedPayload.filter((e: any) => e.value > 0).map((entry: any, index: number) => {
             const amount = entry.value;
             const percent = total > 0 ? amount / total : 0;
             return (

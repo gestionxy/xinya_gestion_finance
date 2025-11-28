@@ -3,7 +3,12 @@ import { PurchaseRecord, MonthlySummary, WeeklySummary, CompanyBubbleData, Unpai
 import { format, endOfWeek, addDays, differenceInDays } from 'date-fns';
 
 // Helper: Replace missing parseISO
-const parseISO = (dateString: string) => new Date(dateString);
+// Helper: Parse YYYY-MM-DD as Local Time to avoid timezone shifts
+const parseISO = (dateString: string) => {
+  if (!dateString) return new Date();
+  const [y, m, d] = dateString.split('T')[0].split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
 
 // Helper: Replace missing startOfWeek
 const startOfWeek = (date: Date, options?: { weekStartsOn: number }) => {
