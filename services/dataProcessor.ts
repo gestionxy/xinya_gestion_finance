@@ -66,6 +66,7 @@ export const getOrderedDepartments = (
 // Mimics the logic where we handle exclusions and auto-fill '*' companies
 export const getProcessedData = (data: PurchaseRecord[]): PurchaseRecord[] => {
   const now = new Date();
+  now.setHours(0, 0, 0, 0); // Normalize to midnight
 
   return data
     .filter(r => {
@@ -527,6 +528,7 @@ export const getPaymentForecast = (processedData: PurchaseRecord[], metrics: Pay
   });
 
   const now = new Date();
+  now.setHours(0, 0, 0, 0); // Normalize to midnight to match Python date() logic
   // End of Current Week (Sunday)
   const endOfCurrentWeek = endOfWeek(now, { weekStartsOn: 1 });
 
