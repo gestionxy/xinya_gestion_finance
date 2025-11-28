@@ -19,6 +19,7 @@ import { ChartViewType, PurchaseRecord, Language } from './types';
 import { GlassCard } from './components/ui/GlassCard';
 import { Select } from './components/ui/Select';
 import { MultiSelect } from './components/ui/MultiSelect';
+import { DatePicker } from './components/ui/DatePicker';
 import { MonthlyPurchaseChart } from './components/charts/MonthlyPurchaseChart';
 import { WeeklyDeptChart } from './components/charts/WeeklyDeptChart';
 import { CompanyWeekChart } from './components/charts/CompanyWeekChart';
@@ -518,14 +519,18 @@ const App: React.FC = () => {
                       <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
                     ) : (
                       <>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.startDate}</label>
-                          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.endDate}</label>
-                          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
-                        </div>
+                        <>
+                          <DatePicker
+                            label={t.control.startDate}
+                            value={startDate}
+                            onChange={setStartDate}
+                          />
+                          <DatePicker
+                            label={t.control.endDate}
+                            value={endDate}
+                            onChange={setEndDate}
+                          />
+                        </>
                       </>
                     )}
                   </>
