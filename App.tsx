@@ -24,10 +24,11 @@ import { MonthlyPurchaseChart } from './components/charts/MonthlyPurchaseChart';
 import { WeeklyDeptChart } from './components/charts/WeeklyDeptChart';
 import { CompanyWeekChart } from './components/charts/CompanyWeekChart';
 import { DistributionChart } from './components/charts/DistributionChart';
-import { UnpaidDeptChart, UnpaidCompanyChart } from './components/charts/UnpaidCharts';
+
 import { PaymentCycleBarChart, ForecastChart } from './components/charts/CycleCharts';
 import { PaymentIntelligence } from './components/PaymentIntelligence';
 import { ForecastDashboard } from './components/modules/ForecastDashboard';
+import { UnpaidDashboard } from './components/modules/UnpaidDashboard';
 import { AdminUpload } from './components/AdminUpload';
 import { format } from 'date-fns';
 import { translations } from './services/translations';
@@ -232,12 +233,10 @@ const App: React.FC = () => {
         return <DistributionChart key={`distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={chartData} sortedCompanies={sortedCompanies} dateRange={[distStart, distEnd]} />;
 
       // --- Unpaid Module ---
-      case 'UNPAID_DEPT':
-        return <UnpaidDeptChart key="unpaid-dept" data={unpaidSummary} />;
-
+      // --- Unpaid Module ---
+      case 'UNPAID_DEPT': // Keep case for type safety, but render Dashboard
       case 'UNPAID_COMPANY':
-        const safeDept = unpaidDepartments.includes(selectedDept) ? selectedDept : unpaidDepartments[0] || selectedDept;
-        return <UnpaidCompanyChart key={`unpaid-comp-${safeDept}`} data={unpaidSummary} selectedDept={safeDept} />;
+        return <UnpaidDashboard key="unpaid-dashboard" unpaidSummary={unpaidSummary} lang={lang} />;
 
       // --- Cycle Module ---
       case 'CYCLE_ANALYSIS':
@@ -355,26 +354,7 @@ const App: React.FC = () => {
 
         {/* Top Cards (Context Dependent) */}
 
-        {/* UNPAID MODULE: Total Card */}
-        {activeModule === 'UNPAID' && (
-          <div className="mb-8 animate-in fade-in zoom-in duration-500">
-            <div className="relative overflow-hidden rounded-xl bg-[#0f172a] border border-scifi-danger/50 p-6 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
-              <div className="absolute top-0 left-0 w-1 h-full bg-scifi-danger"></div>
-              <div className="absolute -right-10 -top-10 w-40 h-40 bg-scifi-danger/10 rounded-full blur-3xl"></div>
-              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-scifi-danger text-sm font-mono uppercase tracking-widest mb-1 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    {t.headers.unpaidTotal}
-                  </h3>
-                  <div className="text-4xl font-bold text-white tracking-tighter filter drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
-                    ${unpaidSummary.totalUnpaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* CYCLE MODULE: Forecast Total Card */}
         {activeModule === 'CYCLE' && currentView === 'CYCLE_FORECAST' && (
@@ -420,13 +400,7 @@ const App: React.FC = () => {
                       </>
                     )}
 
-                    {/* UNPAID MENU */}
-                    {activeModule === 'UNPAID' && (
-                      <>
-                        <button onClick={() => setCurrentView('UNPAID_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'UNPAID_DEPT' ? 'bg-scifi-danger/20 text-scifi-danger border border-scifi-danger/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.unpaidDept}</button>
-                        <button onClick={() => setCurrentView('UNPAID_COMPANY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'UNPAID_COMPANY' ? 'bg-scifi-danger/20 text-scifi-danger border border-scifi-danger/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.unpaidComp}</button>
-                      </>
-                    )}
+
 
                     {/* CYCLE MENU */}
                     {activeModule === 'CYCLE' && (
@@ -471,13 +445,7 @@ const App: React.FC = () => {
                   <Select label={t.control.deptSelect} options={sortedDepartments} value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} />
                 )}
 
-                {/* UNPAID COMPANY Specific */}
-                {currentView === 'UNPAID_COMPANY' && (
-                  <>
-                    <Select label={t.control.deptSelect} options={unpaidDepartments} value={unpaidDepartments.includes(selectedDept) ? selectedDept : unpaidDepartments[0]} onChange={(e) => setSelectedDept(e.target.value)} />
-                    <div className="mt-4 p-3 bg-scifi-danger/10 border border-scifi-danger/20 rounded text-xs text-scifi-danger">{t.alerts.top20}</div>
-                  </>
-                )}
+                {/* UNPAID COMPANY Specific - REMOVED (Handled by UnpaidDashboard) */}
 
                 {/* CYCLE ANALYSIS Specific */}
                 {currentView === 'CYCLE_ANALYSIS' && (
