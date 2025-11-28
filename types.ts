@@ -72,6 +72,7 @@ export interface UnpaidSummary {
   byDepartment: Record<string, number>; // Dept -> Amount
   byDeptCompany: Record<string, Record<string, number>>; // Dept -> { Company -> Amount }
   processedRecords: PurchaseRecord[]; // Records with logic applied
+  details: PurchaseRecord[]; // All unpaid records for drill-down
 }
 
 export interface PaymentCycleMetric {

@@ -461,11 +461,14 @@ export const getUnpaidSummary = (processedData: PurchaseRecord[]): UnpaidSummary
     byDeptCompany[r.department][r.companyName] += (r.unpaid || 0);
   });
 
+  const details = processedData.filter(r => Math.abs(r.unpaid || 0) > 0.01);
+
   return {
     totalUnpaid,
     byDepartment,
     byDeptCompany,
-    processedRecords: processedData
+    processedRecords: processedData,
+    details
   };
 };
 
