@@ -118,6 +118,7 @@ export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSu
                     </div>
                     <ForecastChart
                         data={forecastSummary}
+                        historyData={processedData}
                         view={chartView}
                         selectedDept={selectedChartDept}
                         onBarClick={(name) => {

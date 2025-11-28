@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
-import { PaymentCycleMetric, ForecastSummary } from '../../types';
+import { PaymentCycleMetric, ForecastSummary, PurchaseRecord } from '../../types';
 import { CustomTooltip } from '../ChartTooltip';
 
 // ------------------------------------------------------------------
@@ -86,14 +86,18 @@ export const PaymentCycleBarChart: React.FC<CycleProps> = ({ data, sortBy }) => 
 // ------------------------------------------------------------------
 // 2. Forecast Summary Chart (Dept / Company)
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// 2. Forecast Summary Chart (Dept / Company)
+// ------------------------------------------------------------------
 interface ForecastProps {
   data: ForecastSummary;
+  historyData?: PurchaseRecord[]; // Added for rich tooltip context
   view: 'DEPT' | 'COMPANY';
   selectedDept?: string;
   onBarClick?: (data: any) => void;
 }
 
-export const ForecastChart: React.FC<ForecastProps> = ({ data, view, selectedDept, onBarClick }) => {
+export const ForecastChart: React.FC<ForecastProps> = ({ data, historyData, view, selectedDept, onBarClick }) => {
 
   const chartData = useMemo(() => {
     if (view === 'DEPT') {
@@ -102,12 +106,100 @@ export const ForecastChart: React.FC<ForecastProps> = ({ data, view, selectedDep
         .sort((a, b) => b.amount - a.amount);
     } else {
       if (!selectedDept || !data.byDeptCompany[selectedDept]) return [];
+
       return Object.entries(data.byDeptCompany[selectedDept])
-        .map(([name, amount]) => ({ name, amount: amount as number }))
+        .map(([name, amount]) => {
+          // Enrich with details for Tooltip
+          const companyRecords = data.allRecords.filter(r => r.companyName === name);
+          const companyHistory = historyData ? historyData.filter(r => r.companyName === name && r.checkDate) : [];
+
+          // 1. Median Days (Average of predicted payments for this company)
+          const medianDays = companyRecords.length > 0
+            ? companyRecords.reduce((sum, r) => sum + r.medianDays, 0) / companyRecords.length
+            : 0;
+
+          // 2. Latest Invoice Date (from Unpaid/Predicted)
+          const latestInvoice = companyRecords.sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime())[0];
+
+          // 3. Latest Check Info (from History)
+          const latestCheck = companyHistory.sort((a, b) => new Date(b.checkDate).getTime() - new Date(a.checkDate).getTime())[0];
+
+          return {
+            name,
+            amount: amount as number,
+            // Tooltip Data
+            medianDays,
+            latestInvoiceDate: latestInvoice?.invoiceDate,
+            latestCheckDate: latestCheck?.checkDate,
+            checkNumber: latestCheck?.checkNumber,
+            checkTotal: latestCheck?.checkTotalAmount
+          };
+        })
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 20); // Top 20
     }
-  }, [data, view, selectedDept]);
+  }, [data, historyData, view, selectedDept]);
+
+  // Custom Tooltip for Forecast Chart
+  const ForecastTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const d = payload[0].payload;
+      return (
+        <div className="bg-[#0f172a]/95 border border-scifi-border p-4 rounded-xl shadow-2xl backdrop-blur-md text-xs min-w-[250px]">
+          <div className="font-bold text-white text-sm mb-3 border-b border-gray-700 pb-2 flex justify-between items-center">
+            <span>{d.name}</span>
+            {d.medianDays > 0 && <span className="text-[10px] bg-scifi-primary/20 text-scifi-primary px-2 py-0.5 rounded-full">{d.medianDays.toFixed(0)} Days Avg</span>}
+          </div>
+
+          <div className="space-y-3 font-mono">
+            {/* Main Amount */}
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">应付款:</span>
+              <span className="text-scifi-warning font-bold text-sm">${d.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+
+            {/* Median Days */}
+            {d.medianDays > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">付款账期中位数:</span>
+                <span className="text-white">{d.medianDays.toFixed(0)} 天</span>
+              </div>
+            )}
+
+            {/* Separator */}
+            {(d.latestInvoiceDate || d.latestCheckDate) && <div className="border-t border-gray-700 my-2" />}
+
+            {/* Latest Invoice */}
+            {d.latestInvoiceDate && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">最近付款发票日期:</span>
+                <span className="text-white">{d.latestInvoiceDate.slice(0, 10)}</span>
+              </div>
+            )}
+
+            {/* Check Info */}
+            {d.latestCheckDate && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">最近开支票日期:</span>
+                  <span className="text-white">{d.latestCheckDate.slice(0, 10)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">支票号:</span>
+                  <span className="text-scifi-primary">{d.checkNumber}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">付款支票总额:</span>
+                  <span className="text-scifi-success">${(d.checkTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   if (chartData.length === 0) {
     return <div className="h-96 flex items-center justify-center text-gray-500 font-mono">No forecasted payments due this week.</div>
@@ -131,7 +223,7 @@ export const ForecastChart: React.FC<ForecastProps> = ({ data, view, selectedDep
             tick={{ fontSize: 12, fontFamily: 'JetBrains Mono' }}
             tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff10' }} />
+          <Tooltip content={<ForecastTooltip />} cursor={{ fill: '#ffffff10' }} />
           <Bar
             dataKey="amount"
             name="Due Amount"
