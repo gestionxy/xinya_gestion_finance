@@ -27,6 +27,7 @@ import { DistributionChart } from './components/charts/DistributionChart';
 import { UnpaidDeptChart, UnpaidCompanyChart } from './components/charts/UnpaidCharts';
 import { PaymentCycleBarChart, ForecastChart } from './components/charts/CycleCharts';
 import { PaymentIntelligence } from './components/PaymentIntelligence';
+import { ForecastDashboard } from './components/modules/ForecastDashboard';
 import { AdminUpload } from './components/AdminUpload';
 import { format } from 'date-fns';
 import { translations } from './services/translations';
@@ -243,7 +244,7 @@ const App: React.FC = () => {
         return <PaymentCycleBarChart key={`cycle-${cycleSort}`} data={cycleMetrics} sortBy={cycleSort} />;
 
       case 'CYCLE_FORECAST':
-        return <ForecastChart key="forecast" data={forecastSummary} view="DEPT" />;
+        return <ForecastDashboard key="forecast-dashboard" forecastSummary={forecastSummary} processedData={processedData} lang={lang} />;
 
       // --- Payment Module (Uses Processed Data - Paid Only) ---
       case 'PAYMENT_MONTHLY':
@@ -576,14 +577,7 @@ const App: React.FC = () => {
 
             </GlassCard>
 
-            {/* Additional Panel for Cycle Forecast (Grid) */}
-            {activeModule === 'CYCLE' && currentView === 'CYCLE_FORECAST' && (
-              <PaymentIntelligence
-                forecastData={forecastSummary.allRecords}
-                historyData={processedData}
-                lang={lang}
-              />
-            )}
+            {/* Additional Panel for Cycle Forecast (Grid) - REMOVED (Moved to ForecastDashboard) */}
           </div>
 
         </div>
