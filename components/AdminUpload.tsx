@@ -19,6 +19,26 @@ export const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadSuccess }) => 
     const [isUploading, setIsUploading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
+    const [dbStatus, setDbStatus] = useState<'checking' | 'empty' | 'has_data'>('checking');
+
+    React.useEffect(() => {
+        if (isLoggedIn) {
+            checkDbStatus();
+        }
+    }, [isLoggedIn]);
+
+    const checkDbStatus = async () => {
+        try {
+            const { count, error } = await supabase
+                .from('finance_data')
+                .select('*', { count: 'exact', head: true });
+
+            if (error) throw error;
+            setDbStatus(count === 0 ? 'empty' : 'has_data');
+        } catch (err) {
+            console.error("Failed to check DB status", err);
+        }
+    };
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -46,7 +66,9 @@ export const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadSuccess }) => 
         try {
             const { error } = await supabase.from('finance_data').delete().neq('id', 0); // Delete all rows
             if (error) throw error;
-            setStatus({ type: 'success', message: 'All old data deleted successfully.' });
+            // setStatus({ type: 'success', message: 'All old data deleted successfully.' }); // Removed persistent message
+            setStatus(null); // Clear status
+            setDbStatus('empty'); // Update indicator
         } catch (err: any) {
             setStatus({ type: 'error', message: `Delete failed: ${err.message}` });
         } finally {
@@ -118,6 +140,7 @@ export const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadSuccess }) => 
             }
 
             setStatus({ type: 'success', message: 'Upload complete! Dashboard updated.' });
+            setDbStatus('has_data'); // Update indicator
             setFile(null);
             if (onUploadSuccess) {
                 onUploadSuccess();
@@ -174,7 +197,7 @@ export const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadSuccess }) => 
                     </ol>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between bg-slate-900/50 p-4 rounded-lg border border-scifi-border/50">
                     <button
                         onClick={handleDeleteAll}
                         disabled={isDeleting}
@@ -183,6 +206,18 @@ export const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadSuccess }) => 
                         {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                         Purge Database
                     </button>
+
+                    {/* Database Status Indicator */}
+                    <div className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 border shadow-lg transition-all duration-500 ${dbStatus === 'empty' ? 'bg-red-500/10 border-red-500/50 text-red-400 shadow-red-900/20' :
+                            dbStatus === 'has_data' ? 'bg-green-500/10 border-green-500/50 text-green-400 shadow-green-900/20' :
+                                'bg-gray-500/10 border-gray-500/50 text-gray-400'
+                        }`}>
+                        <div className={`w-2 h-2 rounded-full ${dbStatus === 'empty' ? 'bg-red-500 animate-pulse' :
+                                dbStatus === 'has_data' ? 'bg-green-500' : 'bg-gray-500'
+                            }`} />
+                        {dbStatus === 'empty' ? 'DATABASE EMPTY (READY FOR UPLOAD)' :
+                            dbStatus === 'has_data' ? 'DATABASE ACTIVE' : 'CHECKING STATUS...'}
+                    </div>
                 </div>
 
                 <div className="border-2 border-dashed border-scifi-border rounded-xl p-8 flex flex-col items-center justify-center bg-scifi-bg/20 hover:border-scifi-primary/50 transition-all group relative">
@@ -212,7 +247,7 @@ export const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadSuccess }) => 
                 )}
 
                 {status && (
-                    <div className={`p-3 border rounded text-center text-sm flex items-center justify-center gap-2
+                    <div className={`p-3 border rounded text-center text-sm flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2
                     ${status.type === 'success' ? 'bg-green-900/20 border-green-800 text-green-400' :
                             status.type === 'error' ? 'bg-red-900/20 border-red-800 text-red-400' :
                                 'bg-blue-900/20 border-blue-800 text-blue-400'}`}>
