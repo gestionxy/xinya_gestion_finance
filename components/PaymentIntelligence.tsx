@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo } from 'react';
 import { PurchaseRecord, PredictedPayment, Language } from '../types';
 import { translations } from '../services/translations';
-import { Select } from './ui/Select';
+import { SearchableSelect } from './ui/SearchableSelect';
 import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -60,11 +59,12 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
         return (
             <div className="space-y-4">
                 <div className="w-full md:w-1/3">
-                    <Select
+                    <SearchableSelect
                         label={t.table.searchCompany}
-                        options={['', ...companies]}
+                        options={companies}
                         value={filterValue}
-                        onChange={(e) => setFilterValue(e.target.value)}
+                        onChange={(val) => setFilterValue(val)}
+                        placeholder="Type to search company..."
                     />
                 </div>
 
@@ -136,11 +136,12 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
         return (
             <div className="space-y-4">
                 <div className="w-full md:w-1/3">
-                    <Select
+                    <SearchableSelect
                         label={t.table.searchCompany}
-                        options={['', ...companies]}
+                        options={companies}
                         value={filterValue}
-                        onChange={(e) => setFilterValue(e.target.value)}
+                        onChange={(val) => setFilterValue(val)}
+                        placeholder="Type to search company..."
                     />
                 </div>
 
@@ -220,11 +221,12 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
         return (
             <div className="space-y-4">
                 <div className="w-full md:w-1/3">
-                    <Select
+                    <SearchableSelect
                         label={t.table.searchCompany}
-                        options={['', ...companies]}
+                        options={companies}
                         value={filterValue}
-                        onChange={(e) => setFilterValue(e.target.value)}
+                        onChange={(val) => setFilterValue(val)}
+                        placeholder="Type to search company..."
                     />
                 </div>
 
@@ -283,11 +285,12 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
         return (
             <div className="space-y-4">
                 <div className="w-full md:w-1/3">
-                    <Select
+                    <SearchableSelect
                         label={t.table.searchCheck}
-                        options={['', ...checks]}
+                        options={checks}
                         value={filterValue}
-                        onChange={(e) => setFilterValue(e.target.value)}
+                        onChange={(val) => setFilterValue(val)}
+                        placeholder="Type to search check number..."
                     />
                 </div>
 
