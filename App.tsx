@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Activity, DollarSign, PieChart, ShieldCheck, Menu, Database, AlertTriangle, Globe, Clock, BarChart2, TrendingDown } from 'lucide-react';
-import { generateMockData } from './services/mockData';
 import {
   cleanData,
   getProcessedData,
@@ -55,58 +54,62 @@ const App: React.FC = () => {
   const t = translations[lang];
 
   // Load Data
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const { data: dbData, error } = await supabase.from('finance_data').select('*');
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const { data: dbData, error } = await supabase.from('finance_data').select('*');
 
-        if (error) {
-          console.error('Error fetching data:', error);
-          // Fallback to mock data if error (or empty for now)
-          // const raw = generateMockData();
-          // const cleaned = cleanData(raw);
-          // setData(cleaned);
-          setLoading(false);
-          return;
-        }
-
-        if (dbData) {
-          const mappedData = dbData.map(mapDbToPurchaseRecord);
-          const cleaned = cleanData(mappedData);
-          setData(cleaned);
-
-          // Preprocess for Cycle/Unpaid
-          const processed = getProcessedData(cleaned);
-          setProcessedData(processed);
-
-          // Set defaults
-          const months = Array.from(new Set(cleaned.map(r => r.invoiceDate.slice(0, 7)))).sort();
-          if (months.length > 0) {
-            setSelectedMonth(months[months.length - 1]); // Last month default
-          }
-
-          const { departments, defaultIndex } = getOrderedDepartments(cleaned);
-          if (departments.length > 0) {
-            setSelectedDept(departments[defaultIndex]);
-          }
-
-          // Defaults for Bubble chart
-          const dates = cleaned.map(r => r.invoiceDate).sort();
-          if (dates.length > 0) {
-            setStartDate(dates[0].slice(0, 10));
-            setEndDate(dates[dates.length - 1].slice(0, 10));
-          }
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
-      } finally {
+      if (error) {
+        console.error('Error fetching data:', error);
         setLoading(false);
+        return;
       }
-    };
 
+      if (dbData && dbData.length > 0) {
+        const mappedData = dbData.map(mapDbToPurchaseRecord);
+        const cleaned = cleanData(mappedData);
+        setData(cleaned);
+
+        // Preprocess for Cycle/Unpaid
+        const processed = getProcessedData(cleaned);
+        setProcessedData(processed);
+
+        // Set defaults
+        const months = Array.from(new Set(cleaned.map(r => r.invoiceDate.slice(0, 7)))).sort();
+        if (months.length > 0) {
+          setSelectedMonth(months[months.length - 1]); // Last month default
+        }
+
+        const { departments, defaultIndex } = getOrderedDepartments(cleaned);
+        if (departments.length > 0) {
+          setSelectedDept(departments[defaultIndex]);
+        }
+
+        // Defaults for Bubble chart
+        const dates = cleaned.map(r => r.invoiceDate).sort();
+        if (dates.length > 0) {
+          setStartDate(dates[0].slice(0, 10));
+          setEndDate(dates[dates.length - 1].slice(0, 10));
+        }
+      } else {
+        // Handle empty data case
+        setData([]);
+        setProcessedData([]);
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
+
+  const handleRefresh = () => {
+    fetchData();
+  };
 
   // Derived Data
   const sortedDepartments = useMemo(() => getOrderedDepartments(data).departments, [data]);
@@ -287,7 +290,7 @@ const App: React.FC = () => {
         {/* Admin Section */}
         {isAdmin && (
           <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-            <AdminUpload />
+            <AdminUpload onUploadSuccess={handleRefresh} />
           </div>
         )}
 

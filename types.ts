@@ -31,6 +31,7 @@ export interface MonthlySummary {
   totalAmount: number;
   records: PurchaseRecord[];
   byDepartment: Record<string, number>;
+  totalMonthlyAmount?: number; // Added for % calc
 }
 
 export interface WeeklySummary {
@@ -40,6 +41,7 @@ export interface WeeklySummary {
   totalAmount: number;
   byDepartment: Record<string, number>;
   byCompany?: Record<string, number>;
+  totalWeeklyAmount?: number; // Added for % calc
 }
 
 export type ChartViewType =

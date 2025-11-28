@@ -5,7 +5,11 @@ import { supabase } from '../services/supabase';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 
-export const AdminUpload: React.FC = () => {
+interface AdminUploadProps {
+    onUploadSuccess?: () => void;
+}
+
+export const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadSuccess }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -115,6 +119,9 @@ export const AdminUpload: React.FC = () => {
 
             setStatus({ type: 'success', message: 'Upload complete! Dashboard updated.' });
             setFile(null);
+            if (onUploadSuccess) {
+                onUploadSuccess();
+            }
 
         } catch (err: any) {
             console.error(err);

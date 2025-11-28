@@ -23,15 +23,15 @@ const startOfWeek = (date: Date, options?: { weekStartsOn: number }) => {
 export const cleanData = (data: PurchaseRecord[]): PurchaseRecord[] => {
   return data.map(record => {
     const cleaned = { ...record };
-    
-    // Logic: If '特殊标记清除' == 1, clear specific fields (mapped to null/undefined)
-    if (cleaned.clearFlag === 1) {
+
+    // Logic: If '特殊标记清除' == "1", clear specific fields (mapped to null/undefined)
+    if (cleaned.clearFlag === "1") {
       cleaned.checkNumber = undefined;
       cleaned.actualPaidAmount = undefined;
       cleaned.checkTotalAmount = undefined;
       cleaned.checkDate = undefined;
     }
-    
+
     return cleaned;
   }).filter(r => {
     // Dropna subset=['发票金额', '发票日期']
@@ -40,18 +40,18 @@ export const cleanData = (data: PurchaseRecord[]): PurchaseRecord[] => {
 };
 
 export const getOrderedDepartments = (
-  data: PurchaseRecord[], 
+  data: PurchaseRecord[],
   priorityOrder: string[] = ["杂货", "菜部", "冻部", "肉部", "鱼部", "厨房", "牛奶生鲜", "酒水", "面包"],
   defaultName: string = "杂货"
 ): { departments: string[], defaultIndex: number } => {
   const uniqueDepts = Array.from(new Set(data.map(r => r.department))).filter(Boolean).sort();
-  
+
   const orderedPreferred = priorityOrder.filter(d => uniqueDepts.includes(d));
   const remaining = uniqueDepts.filter(d => !orderedPreferred.includes(d));
-  
+
   const departments = [...orderedPreferred, ...remaining];
   const defaultIndex = departments.indexOf(defaultName);
-  
+
   return { departments, defaultIndex: defaultIndex !== -1 ? defaultIndex : 0 };
 };
 
@@ -79,9 +79,9 @@ export const getProcessedData = (data: PurchaseRecord[]): PurchaseRecord[] => {
         const dueDate = addDays(invoiceDate, 10);
         // If due date is passed, assume it's paid
         if (dueDate < now) {
-           r.checkDate = dueDate.toISOString();
-           r.actualPaidAmount = r.invoiceAmount;
-           r.checkTotalAmount = r.invoiceAmount;
+          r.checkDate = dueDate.toISOString();
+          r.actualPaidAmount = r.invoiceAmount;
+          r.checkTotalAmount = r.invoiceAmount;
         }
       }
 
@@ -91,7 +91,7 @@ export const getProcessedData = (data: PurchaseRecord[]): PurchaseRecord[] => {
 
       // Calculate payment days if paid
       if (r.checkDate && r.invoiceDate) {
-          r.paymentDays = differenceInDays(parseISO(r.checkDate), parseISO(r.invoiceDate));
+        r.paymentDays = differenceInDays(parseISO(r.checkDate), parseISO(r.invoiceDate));
       }
 
       return r;
@@ -102,23 +102,42 @@ export const getProcessedData = (data: PurchaseRecord[]): PurchaseRecord[] => {
 // Aggregation Logic for Charts (Purchase)
 // ------------------------------------------------------------------
 
+// ------------------------------------------------------------------
+// Aggregation Logic for Charts (Purchase)
+// ------------------------------------------------------------------
+
 export const getMonthlySummary = (data: PurchaseRecord[]): MonthlySummary[] => {
+  // 1. Calculate Monthly Totals first (for percentage)
+  const monthlyTotals: Record<string, number> = {};
+  data.forEach(r => {
+    const date = parseISO(r.invoiceDate);
+    const monthStr = format(date, 'yyyy-MM');
+    if (!monthlyTotals[monthStr]) monthlyTotals[monthStr] = 0;
+    monthlyTotals[monthStr] += r.invoiceAmount;
+  });
+
   const grouped = data.reduce((acc, record) => {
     const date = parseISO(record.invoiceDate);
     const monthStr = format(date, 'yyyy-MM');
-    
+
     if (!acc[monthStr]) {
-      acc[monthStr] = { month: monthStr, totalAmount: 0, records: [], byDepartment: {} };
+      acc[monthStr] = {
+        month: monthStr,
+        totalAmount: 0,
+        records: [],
+        byDepartment: {},
+        totalMonthlyAmount: monthlyTotals[monthStr] // Add total for % calc
+      };
     }
-    
+
     acc[monthStr].totalAmount += record.invoiceAmount;
     acc[monthStr].records.push(record);
-    
+
     if (!acc[monthStr].byDepartment[record.department]) {
       acc[monthStr].byDepartment[record.department] = 0;
     }
     acc[monthStr].byDepartment[record.department] += record.invoiceAmount;
-    
+
     return acc;
   }, {} as Record<string, MonthlySummary>);
 
@@ -131,21 +150,56 @@ export const getWeeklySummary = (data: PurchaseRecord[], selectedMonth?: string)
     filtered = data.filter(r => format(parseISO(r.invoiceDate), 'yyyy-MM') === selectedMonth);
   }
 
+  // 1. Calculate Weekly Totals first (for percentage)
+  const weeklyTotals: Record<string, number> = {};
+  filtered.forEach(r => {
+    const date = parseISO(r.invoiceDate);
+    // Python: df['周开始'] = df['发票日期'] - pd.to_timedelta(df['发票日期'].dt.weekday, unit='D')
+    // JS: date.getDay() returns 0 (Sun) - 6 (Sat). 
+    // Python .weekday() returns 0 (Mon) - 6 (Sun).
+    // We need Monday start.
+    const day = date.getDay(); // 0=Sun, 1=Mon...
+    const diff = (day === 0 ? 6 : day - 1); // Convert to Mon=0, Sun=6
+
+    const start = new Date(date);
+    start.setDate(date.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    const weekRange = `${format(start, 'yyyy-MM-dd')} ~ ${format(end, 'yyyy-MM-dd')}`;
+
+    if (!weeklyTotals[weekRange]) weeklyTotals[weekRange] = 0;
+    weeklyTotals[weekRange] += r.invoiceAmount;
+  });
+
   const grouped = filtered.reduce((acc, record) => {
     const date = parseISO(record.invoiceDate);
-    const start = startOfWeek(date, { weekStartsOn: 1 });
-    const end = endOfWeek(date, { weekStartsOn: 1 });
+
+    // Strict Monday Start Logic matching Python
+    const day = date.getDay(); // 0=Sun, 1=Mon...
+    const diff = (day === 0 ? 6 : day - 1); // Convert to Mon=0, Sun=6
+
+    const start = new Date(date);
+    start.setDate(date.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
     const weekRange = `${format(start, 'yyyy-MM-dd')} ~ ${format(end, 'yyyy-MM-dd')}`;
     const weekStartStr = format(start, 'yyyy-MM-dd');
 
     if (!acc[weekRange]) {
-      acc[weekRange] = { 
-        weekRange, 
+      acc[weekRange] = {
+        weekRange,
         weekStart: weekStartStr,
         weekEnd: format(end, 'yyyy-MM-dd'),
-        totalAmount: 0, 
+        totalAmount: 0,
         byDepartment: {},
-        byCompany: {}
+        byCompany: {},
+        totalWeeklyAmount: weeklyTotals[weekRange] // Add total for % calc
       };
     }
 
@@ -154,8 +208,8 @@ export const getWeeklySummary = (data: PurchaseRecord[], selectedMonth?: string)
     acc[weekRange].byDepartment[record.department] += record.invoiceAmount;
 
     if (acc[weekRange].byCompany) {
-        if (!acc[weekRange].byCompany![record.companyName]) acc[weekRange].byCompany![record.companyName] = 0;
-        acc[weekRange].byCompany![record.companyName] += record.invoiceAmount;
+      if (!acc[weekRange].byCompany![record.companyName]) acc[weekRange].byCompany![record.companyName] = 0;
+      acc[weekRange].byCompany![record.companyName] += record.invoiceAmount;
     }
 
     return acc;
@@ -166,59 +220,97 @@ export const getWeeklySummary = (data: PurchaseRecord[], selectedMonth?: string)
 
 
 export const getCompanyBubbleData = (
-    data: PurchaseRecord[], 
-    dept: string, 
-    companies: string[], 
-    dateRange: [Date, Date]
+  data: PurchaseRecord[],
+  dept: string,
+  companies: string[],
+  dateRange: [Date, Date]
 ): { chartData: CompanyBubbleData[], sortedCompanies: string[] } => {
-    
-    const filtered = data.filter(r => {
-        const d = parseISO(r.invoiceDate);
-        const inDate = d >= dateRange[0] && d <= dateRange[1];
-        const inDept = r.department === dept;
-        const inCompany = companies.length === 0 ? true : companies.includes(r.companyName); 
-        return inDate && inDept && inCompany;
-    });
 
-    const grouped: Record<string, CompanyBubbleData> = {};
-    const companyTotals: Record<string, number> = {};
+  // 1. Filter Data
+  const filtered = data.filter(r => {
+    const d = parseISO(r.invoiceDate);
+    const inDate = d >= dateRange[0] && d <= dateRange[1];
+    const inDept = r.department === dept;
+    const inCompany = companies.length === 0 ? true : companies.includes(r.companyName);
+    return inDate && inDept && inCompany;
+  });
 
-    filtered.forEach(r => {
-        const date = parseISO(r.invoiceDate);
-        const start = startOfWeek(date, { weekStartsOn: 1 });
-        const end = endOfWeek(date, { weekStartsOn: 1 });
-        const weekStartStr = format(start, 'yyyy-MM-dd');
-        const weekRange = `${weekStartStr} ~ ${format(end, 'yyyy-MM-dd')}`;
-        const key = `${r.companyName}-${weekStartStr}`;
+  // 2. Group by Company, WeekStart
+  const grouped: Record<string, CompanyBubbleData> = {};
 
-        if (!grouped[key]) {
-            grouped[key] = {
-                companyName: r.companyName,
-                weekStart: weekStartStr,
-                weekRange: weekRange,
-                amount: 0,
-                totalCompanyAmount: 0 
-            };
-        }
-        grouped[key].amount += r.invoiceAmount;
+  // 3. Calculate Company Totals for Top 20 Logic
+  const companyTotals: Record<string, number> = {};
 
-        if (!companyTotals[r.companyName]) companyTotals[r.companyName] = 0;
-        companyTotals[r.companyName] += r.invoiceAmount;
-    });
+  filtered.forEach(r => {
+    // Strict Monday Start Logic
+    const date = parseISO(r.invoiceDate);
+    const day = date.getDay();
+    const diff = (day === 0 ? 6 : day - 1);
+    const start = new Date(date);
+    start.setDate(date.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
 
-    const sortedCompanyList = Object.entries(companyTotals)
-        .sort(([, a], [, b]) => b - a)
-        .map(([name]) => name);
-    
-    const result = Object.values(grouped).map(item => ({
-        ...item,
-        totalCompanyAmount: companyTotals[item.companyName]
-    }));
+    const weekStartStr = format(start, 'yyyy-MM-dd');
+    const weekRange = `${weekStartStr} ~ ${format(end, 'yyyy-MM-dd')}`;
+    const key = `${r.companyName}-${weekStartStr}`;
 
-    return {
-        chartData: result.filter(r => r.amount > 0),
-        sortedCompanies: sortedCompanyList
-    };
+    if (!grouped[key]) {
+      grouped[key] = {
+        companyName: r.companyName,
+        weekStart: weekStartStr,
+        weekRange: weekRange,
+        amount: 0,
+        totalCompanyAmount: 0
+      };
+    }
+    grouped[key].amount += r.invoiceAmount;
+
+    if (!companyTotals[r.companyName]) companyTotals[r.companyName] = 0;
+    companyTotals[r.companyName] += r.invoiceAmount;
+  });
+
+  // 4. Top 20 Logic
+  let companiesToShow: string[] = [];
+  const allCompanies = Object.keys(companyTotals);
+
+  if (allCompanies.length <= 20) {
+    companiesToShow = allCompanies;
+  } else {
+    // Sort by total amount desc and take top 20
+    companiesToShow = Object.entries(companyTotals)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 20)
+      .map(([name]) => name);
+  }
+
+  // 5. Filter grouped data to only include Top 20 companies
+  // AND Filter out amount <= 0 (as per user request: scatter_df = scatter_df[scatter_df['发票金额'] > 0])
+  const result = Object.values(grouped).filter(item =>
+    companiesToShow.includes(item.companyName) && item.amount > 0
+  );
+
+  // 6. Sort companies by Total Amount (Small to Large for Y-axis plotting usually, but user said "Large to Small" in text but code says "ascending=True" for category order?)
+  // User code: 
+  // company_order = scatter_df.groupby("公司名称")["发票金额"].sum().sort_values(ascending=True).index.tolist()
+  // fig.update_layout(yaxis=dict(categoryorder="array", categoryarray=company_order))
+  // So we need Ascending order for the array passed to categoryarray.
+
+  const sortedCompanyList = companiesToShow.sort((a, b) => {
+    return companyTotals[a] - companyTotals[b]; // Ascending
+  });
+
+  // Attach total company amount to each item (if needed for tooltip)
+  const finalResult = result.map(item => ({
+    ...item,
+    totalCompanyAmount: companyTotals[item.companyName]
+  }));
+
+  return {
+    chartData: finalResult,
+    sortedCompanies: sortedCompanyList
+  };
 }
 
 
@@ -234,19 +326,19 @@ export const getMonthlyPaidSummary = (processedData: PurchaseRecord[]): MonthlyS
     const date = parseISO(record.checkDate!);
     const monthStr = format(date, 'yyyy-MM');
     const amount = record.actualPaidAmount || 0;
-    
+
     if (!acc[monthStr]) {
       acc[monthStr] = { month: monthStr, totalAmount: 0, records: [], byDepartment: {} };
     }
-    
+
     acc[monthStr].totalAmount += amount;
     acc[monthStr].records.push(record);
-    
+
     if (!acc[monthStr].byDepartment[record.department]) {
       acc[monthStr].byDepartment[record.department] = 0;
     }
     acc[monthStr].byDepartment[record.department] += amount;
-    
+
     return acc;
   }, {} as Record<string, MonthlySummary>);
 
@@ -255,7 +347,7 @@ export const getMonthlyPaidSummary = (processedData: PurchaseRecord[]): MonthlyS
 
 export const getWeeklyPaidSummary = (processedData: PurchaseRecord[], selectedMonth?: string): WeeklySummary[] => {
   let paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount);
-  
+
   if (selectedMonth) {
     paidData = paidData.filter(r => format(parseISO(r.checkDate!), 'yyyy-MM') === selectedMonth);
   }
@@ -270,11 +362,11 @@ export const getWeeklyPaidSummary = (processedData: PurchaseRecord[], selectedMo
     const weekStartStr = format(start, 'yyyy-MM-dd');
 
     if (!acc[weekRange]) {
-      acc[weekRange] = { 
-        weekRange, 
+      acc[weekRange] = {
+        weekRange,
         weekStart: weekStartStr,
         weekEnd: format(end, 'yyyy-MM-dd'),
-        totalAmount: 0, 
+        totalAmount: 0,
         byDepartment: {},
         byCompany: {}
       };
@@ -285,8 +377,8 @@ export const getWeeklyPaidSummary = (processedData: PurchaseRecord[], selectedMo
     acc[weekRange].byDepartment[record.department] += amount;
 
     if (acc[weekRange].byCompany) {
-        if (!acc[weekRange].byCompany![record.companyName]) acc[weekRange].byCompany![record.companyName] = 0;
-        acc[weekRange].byCompany![record.companyName] += amount;
+      if (!acc[weekRange].byCompany![record.companyName]) acc[weekRange].byCompany![record.companyName] = 0;
+      acc[weekRange].byCompany![record.companyName] += amount;
     }
 
     return acc;
@@ -297,63 +389,63 @@ export const getWeeklyPaidSummary = (processedData: PurchaseRecord[], selectedMo
 
 
 export const getPaidCompanyBubbleData = (
-    processedData: PurchaseRecord[], 
-    dept: string, 
-    companies: string[], 
-    dateRange: [Date, Date]
+  processedData: PurchaseRecord[],
+  dept: string,
+  companies: string[],
+  dateRange: [Date, Date]
 ): { chartData: CompanyBubbleData[], sortedCompanies: string[] } => {
-    
-    const paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount);
 
-    const filtered = paidData.filter(r => {
-        const d = parseISO(r.checkDate!);
-        const inDate = d >= dateRange[0] && d <= dateRange[1];
-        const inDept = r.department === dept;
-        const inCompany = companies.length === 0 ? true : companies.includes(r.companyName); 
-        return inDate && inDept && inCompany;
-    });
+  const paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount);
 
-    const grouped: Record<string, CompanyBubbleData> = {};
-    const companyTotals: Record<string, number> = {};
+  const filtered = paidData.filter(r => {
+    const d = parseISO(r.checkDate!);
+    const inDate = d >= dateRange[0] && d <= dateRange[1];
+    const inDept = r.department === dept;
+    const inCompany = companies.length === 0 ? true : companies.includes(r.companyName);
+    return inDate && inDept && inCompany;
+  });
 
-    filtered.forEach(r => {
-        const date = parseISO(r.checkDate!);
-        const amount = r.actualPaidAmount || 0;
+  const grouped: Record<string, CompanyBubbleData> = {};
+  const companyTotals: Record<string, number> = {};
 
-        const start = startOfWeek(date, { weekStartsOn: 1 });
-        const end = endOfWeek(date, { weekStartsOn: 1 });
-        const weekStartStr = format(start, 'yyyy-MM-dd');
-        const weekRange = `${weekStartStr} ~ ${format(end, 'yyyy-MM-dd')}`;
-        const key = `${r.companyName}-${weekStartStr}`;
+  filtered.forEach(r => {
+    const date = parseISO(r.checkDate!);
+    const amount = r.actualPaidAmount || 0;
 
-        if (!grouped[key]) {
-            grouped[key] = {
-                companyName: r.companyName,
-                weekStart: weekStartStr,
-                weekRange: weekRange,
-                amount: 0,
-                totalCompanyAmount: 0 
-            };
-        }
-        grouped[key].amount += amount;
+    const start = startOfWeek(date, { weekStartsOn: 1 });
+    const end = endOfWeek(date, { weekStartsOn: 1 });
+    const weekStartStr = format(start, 'yyyy-MM-dd');
+    const weekRange = `${weekStartStr} ~ ${format(end, 'yyyy-MM-dd')}`;
+    const key = `${r.companyName}-${weekStartStr}`;
 
-        if (!companyTotals[r.companyName]) companyTotals[r.companyName] = 0;
-        companyTotals[r.companyName] += amount;
-    });
+    if (!grouped[key]) {
+      grouped[key] = {
+        companyName: r.companyName,
+        weekStart: weekStartStr,
+        weekRange: weekRange,
+        amount: 0,
+        totalCompanyAmount: 0
+      };
+    }
+    grouped[key].amount += amount;
 
-    const sortedCompanyList = Object.entries(companyTotals)
-        .sort(([, a], [, b]) => b - a)
-        .map(([name]) => name);
-    
-    const result = Object.values(grouped).map(item => ({
-        ...item,
-        totalCompanyAmount: companyTotals[item.companyName]
-    }));
+    if (!companyTotals[r.companyName]) companyTotals[r.companyName] = 0;
+    companyTotals[r.companyName] += amount;
+  });
 
-    return {
-        chartData: result.filter(r => r.amount > 0),
-        sortedCompanies: sortedCompanyList
-    };
+  const sortedCompanyList = Object.entries(companyTotals)
+    .sort(([, a], [, b]) => b - a)
+    .map(([name]) => name);
+
+  const result = Object.values(grouped).map(item => ({
+    ...item,
+    totalCompanyAmount: companyTotals[item.companyName]
+  }));
+
+  return {
+    chartData: result.filter(r => r.amount > 0),
+    sortedCompanies: sortedCompanyList
+  };
 }
 
 
@@ -366,7 +458,7 @@ export const getUnpaidSummary = (processedData: PurchaseRecord[]): UnpaidSummary
   const byDeptCompany: Record<string, Record<string, number>> = {};
 
   processedData.forEach(r => {
-    if (Math.abs(r.unpaid || 0) < 0.01) return; 
+    if (Math.abs(r.unpaid || 0) < 0.01) return;
 
     if (!byDepartment[r.department]) byDepartment[r.department] = 0;
     byDepartment[r.department] += (r.unpaid || 0);
@@ -398,93 +490,93 @@ const median = (values: number[]): number => {
 };
 
 export const getPaymentCycleMetrics = (processedData: PurchaseRecord[]): PaymentCycleMetric[] => {
-    // 1. Filter only Paid records (Check Date Exists)
-    const paidRecords = processedData.filter(r => r.checkDate && r.invoiceDate && r.paymentDays !== undefined);
-    
-    // 2. Group by Dept + Company
-    const groups: Record<string, PurchaseRecord[]> = {}; // Key: "Dept|Company"
-    
-    paidRecords.forEach(r => {
-        const key = `${r.department}|${r.companyName}`;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(r);
-    });
+  // 1. Filter only Paid records (Check Date Exists)
+  const paidRecords = processedData.filter(r => r.checkDate && r.invoiceDate && r.paymentDays !== undefined);
 
-    // 3. Aggregate Metrics
-    return Object.entries(groups).map(([key, records]) => {
-        const [department, companyName] = key.split('|');
-        const days = records.map(r => r.paymentDays || 0);
-        const totalAmt = records.reduce((sum, r) => sum + r.invoiceAmount, 0);
+  // 2. Group by Dept + Company
+  const groups: Record<string, PurchaseRecord[]> = {}; // Key: "Dept|Company"
 
-        return {
-            department,
-            companyName,
-            invoiceCount: records.length,
-            totalAmount: totalAmt,
-            medianDays: median(days),
-            minDays: Math.min(...days),
-            maxDays: Math.max(...days),
-            avgDays: days.reduce((a, b) => a + b, 0) / days.length
-        };
-    });
+  paidRecords.forEach(r => {
+    const key = `${r.department}|${r.companyName}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  // 3. Aggregate Metrics
+  return Object.entries(groups).map(([key, records]) => {
+    const [department, companyName] = key.split('|');
+    const days = records.map(r => r.paymentDays || 0);
+    const totalAmt = records.reduce((sum, r) => sum + r.invoiceAmount, 0);
+
+    return {
+      department,
+      companyName,
+      invoiceCount: records.length,
+      totalAmount: totalAmt,
+      medianDays: median(days),
+      minDays: Math.min(...days),
+      maxDays: Math.max(...days),
+      avgDays: days.reduce((a, b) => a + b, 0) / days.length
+    };
+  });
 };
 
 // ------------------------------------------------------------------
 // Forecast Logic
 // ------------------------------------------------------------------
 export const getPaymentForecast = (processedData: PurchaseRecord[], metrics: PaymentCycleMetric[]): ForecastSummary => {
-    // 1. Get Unpaid records
-    const unpaidRecords = processedData.filter(r => (r.unpaid || 0) > 0.01);
+  // 1. Get Unpaid records
+  const unpaidRecords = processedData.filter(r => (r.unpaid || 0) > 0.01);
 
-    // 2. Map metrics for fast lookup
-    const metricsMap: Record<string, number> = {}; // "Dept|Company" -> Median Days
-    metrics.forEach(m => {
-        metricsMap[`${m.department}|${m.companyName}`] = m.medianDays;
-    });
+  // 2. Map metrics for fast lookup
+  const metricsMap: Record<string, number> = {}; // "Dept|Company" -> Median Days
+  metrics.forEach(m => {
+    metricsMap[`${m.department}|${m.companyName}`] = m.medianDays;
+  });
 
-    const now = new Date();
-    // End of Current Week (Sunday)
-    const endOfCurrentWeek = endOfWeek(now, { weekStartsOn: 1 }); 
+  const now = new Date();
+  // End of Current Week (Sunday)
+  const endOfCurrentWeek = endOfWeek(now, { weekStartsOn: 1 });
 
-    // 3. Enrich with prediction
-    const predictions: PredictedPayment[] = unpaidRecords.map(r => {
-        const medianDays = metricsMap[`${r.department}|${r.companyName}`] || 0; // Default to 0 if no history
-        const invoiceDate = parseISO(r.invoiceDate);
-        const predictedDate = addDays(invoiceDate, medianDays);
-        
-        // Due logic: Predicted date <= End of current week
-        // Note: Python logic uses `dt.date <= end_of_week`. 
-        const isDue = predictedDate <= endOfCurrentWeek;
+  // 3. Enrich with prediction
+  const predictions: PredictedPayment[] = unpaidRecords.map(r => {
+    const medianDays = metricsMap[`${r.department}|${r.companyName}`] || 0; // Default to 0 if no history
+    const invoiceDate = parseISO(r.invoiceDate);
+    const predictedDate = addDays(invoiceDate, medianDays);
 
-        return {
-            ...r,
-            medianDays,
-            predictedDate: predictedDate.toISOString(),
-            isDueThisWeek: isDue,
-            unpaidAmount: r.unpaid || 0
-        } as PredictedPayment;
-    });
-
-    // 4. Aggregate 'Due This Week'
-    const dueRecords = predictions.filter(p => p.isDueThisWeek);
-    const totalDueThisWeek = dueRecords.reduce((sum, r) => sum + r.unpaidAmount, 0);
-
-    const byDept: Record<string, number> = {};
-    const byDeptCompany: Record<string, Record<string, number>> = {};
-
-    dueRecords.forEach(r => {
-        if (!byDept[r.department]) byDept[r.department] = 0;
-        byDept[r.department] += r.unpaidAmount;
-
-        if (!byDeptCompany[r.department]) byDeptCompany[r.department] = {};
-        if (!byDeptCompany[r.department][r.companyName]) byDeptCompany[r.department][r.companyName] = 0;
-        byDeptCompany[r.department][r.companyName] += r.unpaidAmount;
-    });
+    // Due logic: Predicted date <= End of current week
+    // Note: Python logic uses `dt.date <= end_of_week`. 
+    const isDue = predictedDate <= endOfCurrentWeek;
 
     return {
-        totalDueThisWeek,
-        byDept,
-        byDeptCompany,
-        allRecords: predictions
-    };
+      ...r,
+      medianDays,
+      predictedDate: predictedDate.toISOString(),
+      isDueThisWeek: isDue,
+      unpaidAmount: r.unpaid || 0
+    } as PredictedPayment;
+  });
+
+  // 4. Aggregate 'Due This Week'
+  const dueRecords = predictions.filter(p => p.isDueThisWeek);
+  const totalDueThisWeek = dueRecords.reduce((sum, r) => sum + r.unpaidAmount, 0);
+
+  const byDept: Record<string, number> = {};
+  const byDeptCompany: Record<string, Record<string, number>> = {};
+
+  dueRecords.forEach(r => {
+    if (!byDept[r.department]) byDept[r.department] = 0;
+    byDept[r.department] += r.unpaidAmount;
+
+    if (!byDeptCompany[r.department]) byDeptCompany[r.department] = {};
+    if (!byDeptCompany[r.department][r.companyName]) byDeptCompany[r.department][r.companyName] = 0;
+    byDeptCompany[r.department][r.companyName] += r.unpaidAmount;
+  });
+
+  return {
+    totalDueThisWeek,
+    byDept,
+    byDeptCompany,
+    allRecords: predictions
+  };
 };
