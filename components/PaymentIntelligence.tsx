@@ -54,6 +54,8 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
             companyName: t.labels.total,
             invoiceAmount: filtered.reduce((s, r) => s + r.invoiceAmount, 0),
             unpaidAmount: filtered.reduce((s, r) => s + r.unpaidAmount, 0),
+            actualPaidAmount: filtered.reduce((s, r) => s + (r.actualPaidAmount || 0), 0),
+            checkTotalAmount: filtered.reduce((s, r) => s + (r.checkTotalAmount || 0), 0),
         } : null;
 
         return (
@@ -74,6 +76,7 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                             <thead className="text-xs text-scifi-accent uppercase bg-scifi-card border-b border-scifi-border">
                                 <tr>
                                     <th className="px-4 py-3">{t.labels.company}</th>
+                                    <th className="px-4 py-3">{t.labels.invoiceNo}</th>
                                     <th className="px-4 py-3">{t.labels.invoiceDate}</th>
                                     <th className="px-4 py-3 text-right">{t.labels.amount}</th>
                                     <th className="px-4 py-3 text-right">{t.labels.unpaid}</th>
@@ -85,6 +88,7 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                                 {filtered.map((row, idx) => (
                                     <tr key={idx} className="border-b border-scifi-border/50 hover:bg-white/5">
                                         <td className="px-4 py-2 font-medium text-white">{row.companyName}</td>
+                                        <td className="px-4 py-2 font-mono">{row.invoiceNumber}</td>
                                         <td className="px-4 py-2 font-mono">{row.invoiceDate.slice(0, 10)}</td>
                                         <td className="px-4 py-2 text-right font-mono text-white">{row.invoiceAmount.toFixed(2)}</td>
                                         <td className="px-4 py-2 text-right font-mono text-scifi-warning">{row.unpaidAmount.toFixed(2)}</td>
@@ -95,6 +99,7 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                                 {totalRow && (
                                     <tr className="bg-scifi-primary/10 font-bold text-white">
                                         <td className="px-4 py-3">{totalRow.companyName}</td>
+                                        <td className="px-4 py-3"></td>
                                         <td className="px-4 py-3"></td>
                                         <td className="px-4 py-3 text-right">{totalRow.invoiceAmount.toFixed(2)}</td>
                                         <td className="px-4 py-3 text-right">{totalRow.unpaidAmount.toFixed(2)}</td>
@@ -151,30 +156,36 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                             <thead className="text-xs text-scifi-accent uppercase bg-scifi-card border-b border-scifi-border">
                                 <tr>
                                     <th className="px-4 py-3">{t.labels.company}</th>
+                                    <th className="px-4 py-3">{t.labels.invoiceNo}</th>
                                     <th className="px-4 py-3">{t.labels.invoiceDate}</th>
                                     <th className="px-4 py-3 text-right">{t.labels.amount}</th>
                                     <th className="px-4 py-3 text-right">{t.labels.unpaid}</th>
                                     <th className="px-4 py-3 text-right">{t.labels.cumDiff}</th>
                                     <th className="px-4 py-3">{t.labels.predictedDate}</th>
+                                    <th className="px-4 py-3 text-center">{t.labels.medianDays}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredWithCum.map((row, idx) => (
                                     <tr key={idx} className="border-b border-scifi-border/50 hover:bg-white/5">
                                         <td className="px-4 py-2 font-medium text-white">{row.companyName}</td>
+                                        <td className="px-4 py-2 font-mono">{row.invoiceNumber}</td>
                                         <td className="px-4 py-2 font-mono">{row.invoiceDate.slice(0, 10)}</td>
                                         <td className="px-4 py-2 text-right font-mono text-white">{row.invoiceAmount.toFixed(2)}</td>
                                         <td className="px-4 py-2 text-right font-mono text-scifi-warning">{row.unpaidAmount.toFixed(2)}</td>
                                         <td className="px-4 py-2 text-right font-mono text-gray-300">{row.cumulative.toFixed(2)}</td>
                                         <td className="px-4 py-2 font-mono text-scifi-primary">{row.predictedDate.slice(0, 10)}</td>
+                                        <td className="px-4 py-2 text-center font-mono">{row.medianDays?.toFixed(0)}</td>
                                     </tr>
                                 ))}
                                 {totalRow && (
                                     <tr className="bg-scifi-primary/10 font-bold text-white">
                                         <td className="px-4 py-3">{totalRow.companyName}</td>
                                         <td className="px-4 py-3"></td>
+                                        <td className="px-4 py-3"></td>
                                         <td className="px-4 py-3 text-right">{totalRow.invoiceAmount.toFixed(2)}</td>
                                         <td className="px-4 py-3 text-right">{totalRow.unpaidAmount.toFixed(2)}</td>
+                                        <td className="px-4 py-3"></td>
                                         <td className="px-4 py-3"></td>
                                         <td className="px-4 py-3"></td>
                                     </tr>
@@ -244,26 +255,32 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                                 <thead className="text-xs text-scifi-accent uppercase bg-scifi-card border-b border-scifi-border sticky top-0">
                                     <tr>
                                         <th className="px-4 py-3">{t.labels.company}</th>
+                                        <th className="px-4 py-3">{t.labels.invoiceNo}</th>
                                         <th className="px-4 py-3">{t.labels.invoiceDate}</th>
                                         <th className="px-4 py-3 text-right">{t.labels.amount}</th>
+                                        <th className="px-4 py-3">{t.labels.checkNo}</th>
                                         <th className="px-4 py-3 text-right">{t.labels.paidAmount}</th>
+                                        <th className="px-4 py-3 text-right">{t.labels.checkTotal}</th>
                                         <th className="px-4 py-3 text-right">{t.labels.diff}</th>
                                         <th className="px-4 py-3 text-right">{t.labels.cumDiff}</th>
                                         <th className="px-4 py-3">{t.labels.checkDate}</th>
-                                        <th className="px-4 py-3">{t.labels.checkNo}</th>
+                                        <th className="px-4 py-3">{t.labels.bankDate}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {rowsWithCum.map((row, idx) => (
                                         <tr key={idx} className="border-b border-scifi-border/50 hover:bg-white/5">
                                             <td className="px-4 py-2 font-medium text-white">{row.companyName}</td>
+                                            <td className="px-4 py-2 font-mono">{row.invoiceNumber}</td>
                                             <td className="px-4 py-2 font-mono">{row.invoiceDate.slice(0, 10)}</td>
                                             <td className="px-4 py-2 text-right font-mono text-white">{row.invoiceAmount.toFixed(2)}</td>
+                                            <td className="px-4 py-2 font-mono text-scifi-primary">{row.checkNumber}</td>
                                             <td className="px-4 py-2 text-right font-mono text-scifi-success">{(row.actualPaidAmount || 0).toFixed(2)}</td>
+                                            <td className="px-4 py-2 text-right font-mono text-gray-400">{(row.checkTotalAmount || 0).toFixed(2)}</td>
                                             <td className={`px-4 py-2 text-right font-mono ${row.diff !== 0 ? 'text-scifi-warning' : 'text-gray-600'}`}>{row.diff.toFixed(2)}</td>
                                             <td className="px-4 py-2 text-right font-mono text-gray-300 font-bold">{row.cumulative.toFixed(2)}</td>
                                             <td className="px-4 py-2 font-mono">{row.checkDate?.slice(0, 10)}</td>
-                                            <td className="px-4 py-2 font-mono">{row.checkNumber}</td>
+                                            <td className="px-4 py-2 font-mono">{row.bankReconciliationDate?.slice(0, 10)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -300,24 +317,35 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                             <thead className="text-xs text-scifi-accent uppercase bg-scifi-card border-b border-scifi-border">
                                 <tr>
                                     <th className="px-4 py-3">{t.labels.company}</th>
+                                    <th className="px-4 py-3">{t.labels.invoiceNo}</th>
                                     <th className="px-4 py-3">{t.labels.invoiceDate}</th>
                                     <th className="px-4 py-3 text-right">{t.labels.amount}</th>
-                                    <th className="px-4 py-3 text-right">{t.labels.paidAmount}</th>
-                                    <th className="px-4 py-3">{t.labels.checkDate}</th>
                                     <th className="px-4 py-3">{t.labels.checkNo}</th>
+                                    <th className="px-4 py-3 text-right">{t.labels.paidAmount}</th>
+                                    <th className="px-4 py-3 text-right">{t.labels.checkTotal}</th>
+                                    <th className="px-4 py-3 text-right">{t.labels.diff}</th>
+                                    <th className="px-4 py-3">{t.labels.checkDate}</th>
+                                    <th className="px-4 py-3">{t.labels.bankDate}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map((row, idx) => (
-                                    <tr key={idx} className="border-b border-scifi-border/50 hover:bg-white/5">
-                                        <td className="px-4 py-2 font-medium text-white">{row.companyName}</td>
-                                        <td className="px-4 py-2 font-mono">{row.invoiceDate.slice(0, 10)}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-white">{row.invoiceAmount.toFixed(2)}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-scifi-success">{(row.actualPaidAmount || 0).toFixed(2)}</td>
-                                        <td className="px-4 py-2 font-mono">{row.checkDate?.slice(0, 10)}</td>
-                                        <td className="px-4 py-2 font-mono text-scifi-primary">{row.checkNumber}</td>
-                                    </tr>
-                                ))}
+                                {filtered.map((row, idx) => {
+                                    const diff = (row.invoiceAmount || 0) - (row.actualPaidAmount || 0);
+                                    return (
+                                        <tr key={idx} className="border-b border-scifi-border/50 hover:bg-white/5">
+                                            <td className="px-4 py-2 font-medium text-white">{row.companyName}</td>
+                                            <td className="px-4 py-2 font-mono">{row.invoiceNumber}</td>
+                                            <td className="px-4 py-2 font-mono">{row.invoiceDate.slice(0, 10)}</td>
+                                            <td className="px-4 py-2 text-right font-mono text-white">{row.invoiceAmount.toFixed(2)}</td>
+                                            <td className="px-4 py-2 font-mono text-scifi-primary">{row.checkNumber}</td>
+                                            <td className="px-4 py-2 text-right font-mono text-scifi-success">{(row.actualPaidAmount || 0).toFixed(2)}</td>
+                                            <td className="px-4 py-2 text-right font-mono text-gray-400">{(row.checkTotalAmount || 0).toFixed(2)}</td>
+                                            <td className={`px-4 py-2 text-right font-mono ${diff !== 0 ? 'text-scifi-warning' : 'text-gray-600'}`}>{diff.toFixed(2)}</td>
+                                            <td className="px-4 py-2 font-mono">{row.checkDate?.slice(0, 10)}</td>
+                                            <td className="px-4 py-2 font-mono">{row.bankReconciliationDate?.slice(0, 10)}</td>
+                                        </tr>
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -325,7 +353,6 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
             </div>
         )
     };
-
     return (
         <div className="mt-8 bg-scifi-card/50 border border-scifi-border rounded-xl p-6 animate-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between mb-6">

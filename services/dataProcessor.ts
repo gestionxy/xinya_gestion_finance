@@ -70,7 +70,7 @@ export const getProcessedData = (data: PurchaseRecord[]): PurchaseRecord[] => {
   return data
     .filter(r => {
       // 1.1 Exclude specific companies
-      if (['SLEEMAN', 'Arc-en-ciel', 'Ferme vallee verte'].includes(r.companyName)) return false;
+      if (['SLEEMAN', 'Arc-en-ciel'].includes(r.companyName)) return false;
       // 1.2 Exclude void checks
       if (r.invoiceAmount === 0 && (r.actualPaidAmount || 0) === 0) return false;
       return true;
