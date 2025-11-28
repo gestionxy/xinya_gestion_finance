@@ -1,21 +1,27 @@
 
 export interface PurchaseRecord {
-  id: string; // Unique ID (e.g., from Supabase or generated)
+  id: string; // Unique ID
   companyName: string; // 公司名称
   department: string; // 部门
-  invoiceDate: string; // 发票日期 (ISO String)
-  invoiceAmount: number; // 发票金额
   invoiceNumber: string; // 发票号
-  checkNumber?: string; // 付款支票号
-  actualPaidAmount?: number; // 实际支付金额
-  checkTotalAmount?: number; // 付款支票总额
-  checkDate?: string; // 开支票日期
-  tps?: number;
-  tvq?: number;
-  clearFlag?: number; // 特殊标记清除
-  
-  // Computed fields
-  unpaid?: number; 
+  invoiceDate: string; // 发票日期 (YYYY-MM-DD)
+  invoiceAmount: number; // 发票金额
+  tps: number; // TPS
+  tvq: number; // TVQ
+  netAmount: number; // 税后净值
+  checkNumber: string; // 付款支票号
+  clearFlag: string; // 特殊标记清除
+  actualPaidAmount: number; // 实际支付金额
+  checkTotalAmount: number; // 付款支票总额
+  checkDate: string; // 开支票日期
+  checkMailedDate: string; // 支票寄出日期
+  bankReconciliationDate: string; // 银行对账日期
+  bankReconciliationNote: string; // 银行对账日期备注
+  difference: number; // 差额
+  remarks: string; // 备注
+
+  // Computed fields (keep these for app logic)
+  unpaid?: number;
   paymentDays?: number; // Days taken to pay
 }
 
@@ -36,10 +42,10 @@ export interface WeeklySummary {
   byCompany?: Record<string, number>;
 }
 
-export type ChartViewType = 
-  | 'MONTHLY_DEPT' 
-  | 'WEEKLY_DEPT' 
-  | 'WEEKLY_COMPANY' 
+export type ChartViewType =
+  | 'MONTHLY_DEPT'
+  | 'WEEKLY_DEPT'
+  | 'WEEKLY_COMPANY'
   | 'COMPANY_DISTRIBUTION'
   | 'UNPAID_DEPT'
   | 'UNPAID_COMPANY'

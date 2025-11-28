@@ -2,13 +2,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Activity, DollarSign, PieChart, ShieldCheck, Menu, Database, AlertTriangle, Globe, Clock, BarChart2, TrendingDown } from 'lucide-react';
 import { generateMockData } from './services/mockData';
-import { 
-  cleanData, 
+import {
+  cleanData,
   getProcessedData,
-  getOrderedDepartments, 
-  getMonthlySummary, 
-  getWeeklySummary, 
-  getCompanyBubbleData, 
+  getOrderedDepartments,
+  getMonthlySummary,
+  getWeeklySummary,
+  getCompanyBubbleData,
   getUnpaidSummary,
   getPaymentCycleMetrics,
   getPaymentForecast,
@@ -16,6 +16,7 @@ import {
   getWeeklyPaidSummary,
   getPaidCompanyBubbleData
 } from './services/dataProcessor';
+import { supabase, mapDbToPurchaseRecord } from './services/supabase';
 import { ChartViewType, PurchaseRecord, Language } from './types';
 import { GlassCard } from './components/ui/GlassCard';
 import { Select } from './components/ui/Select';
@@ -36,7 +37,7 @@ const App: React.FC = () => {
   const [processedData, setProcessedData] = useState<PurchaseRecord[]>([]); // Data with * auto-fill and calc
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('CN');
-  
+
   // Navigation State
   const [activeModule, setActiveModule] = useState<'PURCHASE' | 'UNPAID' | 'CYCLE' | 'PAYMENT'>('PURCHASE');
   const [currentView, setCurrentView] = useState<ChartViewType>('MONTHLY_DEPT');
@@ -45,7 +46,7 @@ const App: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
   const [cycleSort, setCycleSort] = useState<'MEDIAN' | 'AMOUNT'>('MEDIAN');
-  
+
   // Date Range for Bubble Chart
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -55,59 +56,85 @@ const App: React.FC = () => {
 
   // Load Data
   useEffect(() => {
-    // Simulate API fetch from Supabase
-    setTimeout(() => {
-      const raw = generateMockData();
-      const cleaned = cleanData(raw);
-      setData(cleaned);
-      
-      // Preprocess for Cycle/Unpaid
-      const processed = getProcessedData(cleaned);
-      setProcessedData(processed);
-      
-      // Set defaults
-      const months = Array.from(new Set(cleaned.map(r => r.invoiceDate.slice(0, 7)))).sort();
-      setSelectedMonth(months[months.length - 1]); // Last month default
-      
-      const { departments, defaultIndex } = getOrderedDepartments(cleaned);
-      setSelectedDept(departments[defaultIndex]);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const { data: dbData, error } = await supabase.from('finance_data').select('*');
 
-      // Defaults for Bubble chart
-      const dates = cleaned.map(r => r.invoiceDate).sort();
-      setStartDate(dates[0].slice(0, 10));
-      setEndDate(dates[dates.length - 1].slice(0, 10));
+        if (error) {
+          console.error('Error fetching data:', error);
+          // Fallback to mock data if error (or empty for now)
+          // const raw = generateMockData();
+          // const cleaned = cleanData(raw);
+          // setData(cleaned);
+          setLoading(false);
+          return;
+        }
 
-      setLoading(false);
-    }, 1000);
+        if (dbData) {
+          const mappedData = dbData.map(mapDbToPurchaseRecord);
+          const cleaned = cleanData(mappedData);
+          setData(cleaned);
+
+          // Preprocess for Cycle/Unpaid
+          const processed = getProcessedData(cleaned);
+          setProcessedData(processed);
+
+          // Set defaults
+          const months = Array.from(new Set(cleaned.map(r => r.invoiceDate.slice(0, 7)))).sort();
+          if (months.length > 0) {
+            setSelectedMonth(months[months.length - 1]); // Last month default
+          }
+
+          const { departments, defaultIndex } = getOrderedDepartments(cleaned);
+          if (departments.length > 0) {
+            setSelectedDept(departments[defaultIndex]);
+          }
+
+          // Defaults for Bubble chart
+          const dates = cleaned.map(r => r.invoiceDate).sort();
+          if (dates.length > 0) {
+            setStartDate(dates[0].slice(0, 10));
+            setEndDate(dates[dates.length - 1].slice(0, 10));
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   // Derived Data
   const sortedDepartments = useMemo(() => getOrderedDepartments(data).departments, [data]);
   const availableMonths = useMemo(() => Array.from(new Set(data.map(r => r.invoiceDate.slice(0, 7)))).sort(), [data]);
-  
+
   // Data for Unpaid (Using processedData)
   const unpaidSummary = useMemo(() => getUnpaidSummary(processedData), [processedData]);
 
   // Derived Departments specific to Unpaid
   const unpaidDepartments = useMemo(() => {
-      const depts = Object.keys(unpaidSummary.byDeptCompany);
-      const { departments } = getOrderedDepartments(data, undefined, undefined);
-      return departments.filter(d => depts.includes(d));
+    const depts = Object.keys(unpaidSummary.byDeptCompany);
+    const { departments } = getOrderedDepartments(data, undefined, undefined);
+    return departments.filter(d => depts.includes(d));
   }, [unpaidSummary, data]);
 
   // Data for Cycle
   // 1. Analysis Metrics
   const cycleMetrics = useMemo(() => {
-     let metrics = getPaymentCycleMetrics(processedData);
-     // Filter by Selected Dept if needed? No, chart usually shows company breakdown for selected dept
-     return metrics.filter(m => m.department === selectedDept);
+    let metrics = getPaymentCycleMetrics(processedData);
+    // Filter by Selected Dept if needed? No, chart usually shows company breakdown for selected dept
+    return metrics.filter(m => m.department === selectedDept);
   }, [processedData, selectedDept]);
 
   // 2. Forecast
   const forecastSummary = useMemo(() => {
-     // Need all metrics to predict
-     const allMetrics = getPaymentCycleMetrics(processedData);
-     return getPaymentForecast(processedData, allMetrics);
+    // Need all metrics to predict
+    const allMetrics = getPaymentCycleMetrics(processedData);
+    return getPaymentForecast(processedData, allMetrics);
   }, [processedData]);
 
 
@@ -120,25 +147,25 @@ const App: React.FC = () => {
       case 'MONTHLY_DEPT':
         const monthlyData = getMonthlySummary(data);
         return <MonthlyPurchaseChart data={monthlyData} departments={sortedDepartments} />;
-      
+
       case 'WEEKLY_DEPT':
         const weeklyData = getWeeklySummary(data, selectedMonth);
         return <WeeklyDeptChart data={weeklyData} departments={sortedDepartments} selectedMonth={selectedMonth} />;
-      
+
       case 'WEEKLY_COMPANY':
         const filteredForCompany = data.filter(r => r.department === selectedDept && r.invoiceDate.startsWith(selectedMonth));
         const companyWeeklyData = getWeeklySummary(filteredForCompany);
         return <CompanyWeekChart data={companyWeeklyData} department={selectedDept} />;
-      
+
       case 'COMPANY_DISTRIBUTION':
         const { chartData, sortedCompanies } = getCompanyBubbleData(
-            data, 
-            selectedDept, 
-            selectedBubbleCompanies, 
-            [new Date(startDate), new Date(endDate)]
+          data,
+          selectedDept,
+          selectedBubbleCompanies,
+          [new Date(startDate), new Date(endDate)]
         );
         return <DistributionChart data={chartData} sortedCompanies={sortedCompanies} />;
-      
+
       // --- Unpaid Module ---
       case 'UNPAID_DEPT':
         return <UnpaidDeptChart data={unpaidSummary} />;
@@ -150,7 +177,7 @@ const App: React.FC = () => {
       // --- Cycle Module ---
       case 'CYCLE_ANALYSIS':
         return <PaymentCycleBarChart data={cycleMetrics} sortBy={cycleSort} />;
-      
+
       case 'CYCLE_FORECAST':
         return <ForecastChart data={forecastSummary} view="DEPT" />;
 
@@ -158,27 +185,27 @@ const App: React.FC = () => {
       case 'PAYMENT_MONTHLY':
         const monthlyPaidData = getMonthlyPaidSummary(processedData);
         return <MonthlyPurchaseChart data={monthlyPaidData} departments={sortedDepartments} />;
-      
+
       case 'PAYMENT_WEEKLY':
         const weeklyPaidData = getWeeklyPaidSummary(processedData, selectedMonth);
         return <WeeklyDeptChart data={weeklyPaidData} departments={sortedDepartments} selectedMonth={selectedMonth} />;
-      
+
       case 'PAYMENT_COMPANY_WEEKLY':
         // Reuse CompanyWeekChart but pass paid data structure
         // Need to filter processedData manually first if using getWeeklyPaidSummary internally?
         // getWeeklyPaidSummary filters internally by month.
         // But for Company view we need Dept filter too.
         // Let's create filtered subset first.
-        const filteredPaidCompany = processedData.filter(r => r.department === selectedDept); 
+        const filteredPaidCompany = processedData.filter(r => r.department === selectedDept);
         const companyPaidWeeklyData = getWeeklyPaidSummary(filteredPaidCompany, selectedMonth);
         return <CompanyWeekChart data={companyPaidWeeklyData} department={selectedDept} />;
 
       case 'PAYMENT_DISTRIBUTION':
         const { chartData: paidBubble, sortedCompanies: paidSorted } = getPaidCompanyBubbleData(
-            processedData, 
-            selectedDept, 
-            selectedBubbleCompanies, 
-            [new Date(startDate), new Date(endDate)]
+          processedData,
+          selectedDept,
+          selectedBubbleCompanies,
+          [new Date(startDate), new Date(endDate)]
         );
         return <DistributionChart data={paidBubble} sortedCompanies={paidSorted} />;
 
@@ -188,11 +215,11 @@ const App: React.FC = () => {
   };
 
   const handleModuleChange = (module: 'PURCHASE' | 'UNPAID' | 'CYCLE' | 'PAYMENT') => {
-      setActiveModule(module);
-      if (module === 'PURCHASE') setCurrentView('MONTHLY_DEPT');
-      if (module === 'UNPAID') setCurrentView('UNPAID_DEPT');
-      if (module === 'CYCLE') setCurrentView('CYCLE_ANALYSIS');
-      if (module === 'PAYMENT') setCurrentView('PAYMENT_MONTHLY');
+    setActiveModule(module);
+    if (module === 'PURCHASE') setCurrentView('MONTHLY_DEPT');
+    if (module === 'UNPAID') setCurrentView('UNPAID_DEPT');
+    if (module === 'CYCLE') setCurrentView('CYCLE_ANALYSIS');
+    if (module === 'PAYMENT') setCurrentView('PAYMENT_MONTHLY');
   }
 
   return (
@@ -203,31 +230,31 @@ const App: React.FC = () => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-scifi-primary/20 rounded-lg">
-                 <Activity className="w-6 h-6 text-scifi-primary" />
+                <Activity className="w-6 h-6 text-scifi-primary" />
               </div>
               <span className="text-xl font-bold tracking-tight text-white">NOVA<span className="text-scifi-primary">{t.nav.brand}</span></span>
             </div>
-            
+
             <div className="hidden md:flex items-center space-x-1">
-              <button 
+              <button
                 onClick={() => handleModuleChange('PURCHASE')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeModule === 'PURCHASE' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
               >
                 {t.nav.purchase}
               </button>
-              <button 
+              <button
                 onClick={() => handleModuleChange('UNPAID')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeModule === 'UNPAID' ? 'bg-scifi-danger/20 text-scifi-danger border border-scifi-danger/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
               >
                 {t.nav.unpaid}
               </button>
-              <button 
+              <button
                 onClick={() => handleModuleChange('CYCLE')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeModule === 'CYCLE' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
               >
                 {t.nav.cycle}
               </button>
-              <button 
+              <button
                 onClick={() => handleModuleChange('PAYMENT')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeModule === 'PAYMENT' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
               >
@@ -236,227 +263,227 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4">
-                <button
-                    onClick={() => setLang(lang === 'CN' ? 'FR' : 'CN')}
-                    className="flex items-center gap-2 text-xs font-mono text-scifi-accent hover:text-white transition-colors border border-scifi-accent/30 px-3 py-1 rounded"
-                >
-                    <Globe className="w-3 h-3" />
-                    {lang}
-                </button>
+              <button
+                onClick={() => setLang(lang === 'CN' ? 'FR' : 'CN')}
+                className="flex items-center gap-2 text-xs font-mono text-scifi-accent hover:text-white transition-colors border border-scifi-accent/30 px-3 py-1 rounded"
+              >
+                <Globe className="w-3 h-3" />
+                {lang}
+              </button>
 
-                <button 
-                    onClick={() => setIsAdmin(!isAdmin)}
-                    className={`p-2 rounded-full transition-all ${isAdmin ? 'bg-scifi-primary text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-scifi-card text-gray-400 hover:text-white'}`}
-                >
-                    <ShieldCheck className="w-5 h-5" />
-                </button>
+              <button
+                onClick={() => setIsAdmin(!isAdmin)}
+                className={`p-2 rounded-full transition-all ${isAdmin ? 'bg-scifi-primary text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-scifi-card text-gray-400 hover:text-white'}`}
+              >
+                <ShieldCheck className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Admin Section */}
         {isAdmin && (
-            <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-                <AdminUpload />
-            </div>
+          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+            <AdminUpload />
+          </div>
         )}
 
         {/* Top Cards (Context Dependent) */}
-        
+
         {/* UNPAID MODULE: Total Card */}
         {activeModule === 'UNPAID' && (
-             <div className="mb-8 animate-in fade-in zoom-in duration-500">
-                <div className="relative overflow-hidden rounded-xl bg-[#0f172a] border border-scifi-danger/50 p-6 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
-                     <div className="absolute top-0 left-0 w-1 h-full bg-scifi-danger"></div>
-                     <div className="absolute -right-10 -top-10 w-40 h-40 bg-scifi-danger/10 rounded-full blur-3xl"></div>
-                     <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div>
-                             <h3 className="text-scifi-danger text-sm font-mono uppercase tracking-widest mb-1 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" />
-                                {t.headers.unpaidTotal}
-                             </h3>
-                             <div className="text-4xl font-bold text-white tracking-tighter filter drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
-                                ${unpaidSummary.totalUnpaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                             </div>
-                        </div>
-                     </div>
+          <div className="mb-8 animate-in fade-in zoom-in duration-500">
+            <div className="relative overflow-hidden rounded-xl bg-[#0f172a] border border-scifi-danger/50 p-6 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
+              <div className="absolute top-0 left-0 w-1 h-full bg-scifi-danger"></div>
+              <div className="absolute -right-10 -top-10 w-40 h-40 bg-scifi-danger/10 rounded-full blur-3xl"></div>
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-scifi-danger text-sm font-mono uppercase tracking-widest mb-1 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    {t.headers.unpaidTotal}
+                  </h3>
+                  <div className="text-4xl font-bold text-white tracking-tighter filter drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                    ${unpaidSummary.totalUnpaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                 </div>
-             </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* CYCLE MODULE: Forecast Total Card */}
         {activeModule === 'CYCLE' && currentView === 'CYCLE_FORECAST' && (
-             <div className="mb-8 animate-in fade-in zoom-in duration-500">
-                <div className="relative overflow-hidden rounded-xl bg-[#0f172a] border border-scifi-primary/50 p-6 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
-                     <div className="absolute top-0 left-0 w-1 h-full bg-scifi-primary"></div>
-                     <div className="absolute -right-10 -top-10 w-40 h-40 bg-scifi-primary/10 rounded-full blur-3xl"></div>
-                     <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div>
-                             <h3 className="text-scifi-primary text-sm font-mono uppercase tracking-widest mb-1 flex items-center gap-2">
-                                <Clock className="w-4 h-4" />
-                                {t.headers.forecastTotal}
-                             </h3>
-                             <div className="text-4xl font-bold text-white tracking-tighter filter drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
-                                ${forecastSummary.totalDueThisWeek.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                             </div>
-                        </div>
-                        <div className="text-right text-gray-400 text-xs max-w-md">
-                           {t.alerts.forecastInfo}
-                        </div>
-                     </div>
+          <div className="mb-8 animate-in fade-in zoom-in duration-500">
+            <div className="relative overflow-hidden rounded-xl bg-[#0f172a] border border-scifi-primary/50 p-6 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+              <div className="absolute top-0 left-0 w-1 h-full bg-scifi-primary"></div>
+              <div className="absolute -right-10 -top-10 w-40 h-40 bg-scifi-primary/10 rounded-full blur-3xl"></div>
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-scifi-primary text-sm font-mono uppercase tracking-widest mb-1 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {t.headers.forecastTotal}
+                  </h3>
+                  <div className="text-4xl font-bold text-white tracking-tighter filter drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
+                    ${forecastSummary.totalDueThisWeek.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                 </div>
-             </div>
+                <div className="text-right text-gray-400 text-xs max-w-md">
+                  {t.alerts.forecastInfo}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            
-            {/* Sidebar Controls */}
-            <div className="lg:col-span-1 space-y-6">
-                <GlassCard title={t.control.panel}>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                             <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.viewSelect}</label>
-                             <div className="flex flex-col gap-2">
-                                {/* PURCHASE MENU */}
-                                {activeModule === 'PURCHASE' && (
-                                    <>
-                                        <button onClick={() => setCurrentView('MONTHLY_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'MONTHLY_DEPT' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.monthlyDept}</button>
-                                        <button onClick={() => setCurrentView('WEEKLY_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'WEEKLY_DEPT' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.weeklyDept}</button>
-                                        <button onClick={() => setCurrentView('WEEKLY_COMPANY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'WEEKLY_COMPANY' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.weeklyComp}</button>
-                                        <button onClick={() => setCurrentView('COMPANY_DISTRIBUTION')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'COMPANY_DISTRIBUTION' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.distrib}</button>
-                                    </>
-                                )}
 
-                                {/* UNPAID MENU */}
-                                {activeModule === 'UNPAID' && (
-                                    <>
-                                        <button onClick={() => setCurrentView('UNPAID_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'UNPAID_DEPT' ? 'bg-scifi-danger/20 text-scifi-danger border border-scifi-danger/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.unpaidDept}</button>
-                                        <button onClick={() => setCurrentView('UNPAID_COMPANY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'UNPAID_COMPANY' ? 'bg-scifi-danger/20 text-scifi-danger border border-scifi-danger/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.unpaidComp}</button>
-                                    </>
-                                )}
+          {/* Sidebar Controls */}
+          <div className="lg:col-span-1 space-y-6">
+            <GlassCard title={t.control.panel}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.viewSelect}</label>
+                  <div className="flex flex-col gap-2">
+                    {/* PURCHASE MENU */}
+                    {activeModule === 'PURCHASE' && (
+                      <>
+                        <button onClick={() => setCurrentView('MONTHLY_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'MONTHLY_DEPT' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.monthlyDept}</button>
+                        <button onClick={() => setCurrentView('WEEKLY_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'WEEKLY_DEPT' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.weeklyDept}</button>
+                        <button onClick={() => setCurrentView('WEEKLY_COMPANY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'WEEKLY_COMPANY' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.weeklyComp}</button>
+                        <button onClick={() => setCurrentView('COMPANY_DISTRIBUTION')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'COMPANY_DISTRIBUTION' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.distrib}</button>
+                      </>
+                    )}
 
-                                {/* CYCLE MENU */}
-                                {activeModule === 'CYCLE' && (
-                                    <>
-                                        <button onClick={() => setCurrentView('CYCLE_ANALYSIS')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'CYCLE_ANALYSIS' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.cycleAnalysis}</button>
-                                        <button onClick={() => setCurrentView('CYCLE_FORECAST')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'CYCLE_FORECAST' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.cycleForecast}</button>
-                                    </>
-                                )}
+                    {/* UNPAID MENU */}
+                    {activeModule === 'UNPAID' && (
+                      <>
+                        <button onClick={() => setCurrentView('UNPAID_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'UNPAID_DEPT' ? 'bg-scifi-danger/20 text-scifi-danger border border-scifi-danger/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.unpaidDept}</button>
+                        <button onClick={() => setCurrentView('UNPAID_COMPANY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'UNPAID_COMPANY' ? 'bg-scifi-danger/20 text-scifi-danger border border-scifi-danger/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.unpaidComp}</button>
+                      </>
+                    )}
 
-                                {/* PAYMENT MENU */}
-                                {activeModule === 'PAYMENT' && (
-                                    <>
-                                        <button onClick={() => setCurrentView('PAYMENT_MONTHLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_MONTHLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentMonthly}</button>
-                                        <button onClick={() => setCurrentView('PAYMENT_WEEKLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_WEEKLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentWeekly}</button>
-                                        <button onClick={() => setCurrentView('PAYMENT_COMPANY_WEEKLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_COMPANY_WEEKLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentCompWeekly}</button>
-                                        <button onClick={() => setCurrentView('PAYMENT_DISTRIBUTION')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_DISTRIBUTION' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentDistrib}</button>
-                                    </>
-                                )}
-                             </div>
-                        </div>
+                    {/* CYCLE MENU */}
+                    {activeModule === 'CYCLE' && (
+                      <>
+                        <button onClick={() => setCurrentView('CYCLE_ANALYSIS')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'CYCLE_ANALYSIS' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.cycleAnalysis}</button>
+                        <button onClick={() => setCurrentView('CYCLE_FORECAST')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'CYCLE_FORECAST' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.cycleForecast}</button>
+                      </>
+                    )}
 
-                        <div className="h-px bg-scifi-border my-2" />
+                    {/* PAYMENT MENU */}
+                    {activeModule === 'PAYMENT' && (
+                      <>
+                        <button onClick={() => setCurrentView('PAYMENT_MONTHLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_MONTHLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentMonthly}</button>
+                        <button onClick={() => setCurrentView('PAYMENT_WEEKLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_WEEKLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentWeekly}</button>
+                        <button onClick={() => setCurrentView('PAYMENT_COMPANY_WEEKLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_COMPANY_WEEKLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentCompWeekly}</button>
+                        <button onClick={() => setCurrentView('PAYMENT_DISTRIBUTION')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_DISTRIBUTION' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentDistrib}</button>
+                      </>
+                    )}
+                  </div>
+                </div>
 
-                        {/* CONTROLS BASED ON VIEW */}
-                        
-                        {/* 1. Global Dept/Month Selectors (Used in multiple views) */}
-                        {['WEEKLY_DEPT', 'WEEKLY_COMPANY', 'COMPANY_DISTRIBUTION', 'PAYMENT_WEEKLY', 'PAYMENT_COMPANY_WEEKLY', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
-                            <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
-                        )}
+                <div className="h-px bg-scifi-border my-2" />
 
-                        {['WEEKLY_COMPANY', 'COMPANY_DISTRIBUTION', 'CYCLE_ANALYSIS', 'PAYMENT_COMPANY_WEEKLY', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
-                            <Select label={t.control.deptSelect} options={sortedDepartments} value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} />
-                        )}
-                        
-                        {/* UNPAID COMPANY Specific */}
-                        {currentView === 'UNPAID_COMPANY' && (
-                            <>
-                                <Select label={t.control.deptSelect} options={unpaidDepartments} value={unpaidDepartments.includes(selectedDept) ? selectedDept : unpaidDepartments[0]} onChange={(e) => setSelectedDept(e.target.value)} />
-                                <div className="mt-4 p-3 bg-scifi-danger/10 border border-scifi-danger/20 rounded text-xs text-scifi-danger">{t.alerts.top20}</div>
-                            </>
-                        )}
+                {/* CONTROLS BASED ON VIEW */}
 
-                        {/* CYCLE ANALYSIS Specific */}
-                        {currentView === 'CYCLE_ANALYSIS' && (
-                             <>
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.sortOption}</label>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => setCycleSort('MEDIAN')} className={`flex-1 py-1.5 text-xs rounded border ${cycleSort === 'MEDIAN' ? 'bg-scifi-warning/20 border-scifi-warning text-scifi-warning' : 'border-scifi-border text-gray-400'}`}>{t.control.sortByMedian}</button>
-                                        <button onClick={() => setCycleSort('AMOUNT')} className={`flex-1 py-1.5 text-xs rounded border ${cycleSort === 'AMOUNT' ? 'bg-scifi-warning/20 border-scifi-warning text-scifi-warning' : 'border-scifi-border text-gray-400'}`}>{t.control.sortByAmount}</button>
-                                    </div>
-                                </div>
-                                <div className="mt-4 p-3 bg-scifi-warning/10 border border-scifi-warning/20 rounded text-xs text-scifi-warning">{t.alerts.cycleInfo}</div>
-                             </>
-                        )}
-
-                        {/* DISTRIBUTION Specific */}
-                        {['COMPANY_DISTRIBUTION', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
-                            <>
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.startDate}</label>
-                                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.endDate}</label>
-                                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
-                                </div>
-                            </>
-                        )}
-                        
-                        {/* PAYMENT INFO */}
-                        {activeModule === 'PAYMENT' && (
-                             <div className="mt-4 p-3 bg-scifi-success/10 border border-scifi-success/20 rounded text-xs text-scifi-success">{t.alerts.paymentInfo}</div>
-                        )}
-
-                    </div>
-                </GlassCard>
-            </div>
-
-            {/* Main Chart Area */}
-            <div className="lg:col-span-3 space-y-6">
-                <GlassCard className={`h-full min-h-[500px] 
-                    ${activeModule === 'UNPAID' ? 'border-scifi-danger/30' : 
-                      activeModule === 'CYCLE' ? 'border-scifi-warning/30' : 
-                      activeModule === 'PAYMENT' ? 'border-scifi-success/30' : ''}`}>
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            {/* Icons & Titles */}
-                            {currentView === 'MONTHLY_DEPT' && <><PieChart className="w-5 h-5 text-scifi-accent" /> {t.headers.strategic}</>}
-                            {currentView === 'WEEKLY_DEPT' && <><Activity className="w-5 h-5 text-scifi-accent" /> {t.headers.tactical}</>}
-                            {currentView === 'WEEKLY_COMPANY' && <><Database className="w-5 h-5 text-scifi-accent" /> {t.headers.vendor}</>}
-                            {currentView === 'COMPANY_DISTRIBUTION' && <><DollarSign className="w-5 h-5 text-scifi-accent" /> {t.headers.distrib}</>}
-                            
-                            {currentView === 'UNPAID_DEPT' && <><AlertTriangle className="w-5 h-5 text-scifi-danger" /> {t.headers.unpaidDeptTitle}</>}
-                            {currentView === 'UNPAID_COMPANY' && <><Database className="w-5 h-5 text-scifi-danger" /> {t.headers.unpaidCompTitle}</>}
-                            
-                            {currentView === 'CYCLE_ANALYSIS' && <><Clock className="w-5 h-5 text-scifi-warning" /> {t.headers.cycleAnalysis}</>}
-                            {currentView === 'CYCLE_FORECAST' && <><BarChart2 className="w-5 h-5 text-scifi-warning" /> {t.headers.forecastTitle}</>}
-                            
-                            {currentView === 'PAYMENT_MONTHLY' && <><PieChart className="w-5 h-5 text-scifi-success" /> {t.headers.paymentMonthlyTitle}</>}
-                            {currentView === 'PAYMENT_WEEKLY' && <><Activity className="w-5 h-5 text-scifi-success" /> {t.headers.paymentWeeklyTitle}</>}
-                            {currentView === 'PAYMENT_COMPANY_WEEKLY' && <><Database className="w-5 h-5 text-scifi-success" /> {t.headers.paymentCompTitle}</>}
-                            {currentView === 'PAYMENT_DISTRIBUTION' && <><TrendingDown className="w-5 h-5 text-scifi-success" /> {t.headers.paymentDistribTitle}</>}
-                        </h2>
-                    </div>
-                    
-                    {renderChart()}
-
-                </GlassCard>
-
-                {/* Additional Panel for Cycle Forecast (Grid) */}
-                {activeModule === 'CYCLE' && currentView === 'CYCLE_FORECAST' && (
-                    <PaymentIntelligence 
-                        forecastData={forecastSummary.allRecords} 
-                        historyData={processedData}
-                        lang={lang}
-                    />
+                {/* 1. Global Dept/Month Selectors (Used in multiple views) */}
+                {['WEEKLY_DEPT', 'WEEKLY_COMPANY', 'COMPANY_DISTRIBUTION', 'PAYMENT_WEEKLY', 'PAYMENT_COMPANY_WEEKLY', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
+                  <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
                 )}
-            </div>
+
+                {['WEEKLY_COMPANY', 'COMPANY_DISTRIBUTION', 'CYCLE_ANALYSIS', 'PAYMENT_COMPANY_WEEKLY', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
+                  <Select label={t.control.deptSelect} options={sortedDepartments} value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} />
+                )}
+
+                {/* UNPAID COMPANY Specific */}
+                {currentView === 'UNPAID_COMPANY' && (
+                  <>
+                    <Select label={t.control.deptSelect} options={unpaidDepartments} value={unpaidDepartments.includes(selectedDept) ? selectedDept : unpaidDepartments[0]} onChange={(e) => setSelectedDept(e.target.value)} />
+                    <div className="mt-4 p-3 bg-scifi-danger/10 border border-scifi-danger/20 rounded text-xs text-scifi-danger">{t.alerts.top20}</div>
+                  </>
+                )}
+
+                {/* CYCLE ANALYSIS Specific */}
+                {currentView === 'CYCLE_ANALYSIS' && (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.sortOption}</label>
+                      <div className="flex gap-2">
+                        <button onClick={() => setCycleSort('MEDIAN')} className={`flex-1 py-1.5 text-xs rounded border ${cycleSort === 'MEDIAN' ? 'bg-scifi-warning/20 border-scifi-warning text-scifi-warning' : 'border-scifi-border text-gray-400'}`}>{t.control.sortByMedian}</button>
+                        <button onClick={() => setCycleSort('AMOUNT')} className={`flex-1 py-1.5 text-xs rounded border ${cycleSort === 'AMOUNT' ? 'bg-scifi-warning/20 border-scifi-warning text-scifi-warning' : 'border-scifi-border text-gray-400'}`}>{t.control.sortByAmount}</button>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 bg-scifi-warning/10 border border-scifi-warning/20 rounded text-xs text-scifi-warning">{t.alerts.cycleInfo}</div>
+                  </>
+                )}
+
+                {/* DISTRIBUTION Specific */}
+                {['COMPANY_DISTRIBUTION', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.startDate}</label>
+                      <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.endDate}</label>
+                      <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-scifi-card border border-scifi-border rounded p-2 text-sm text-white focus:border-scifi-primary outline-none" />
+                    </div>
+                  </>
+                )}
+
+                {/* PAYMENT INFO */}
+                {activeModule === 'PAYMENT' && (
+                  <div className="mt-4 p-3 bg-scifi-success/10 border border-scifi-success/20 rounded text-xs text-scifi-success">{t.alerts.paymentInfo}</div>
+                )}
+
+              </div>
+            </GlassCard>
+          </div>
+
+          {/* Main Chart Area */}
+          <div className="lg:col-span-3 space-y-6">
+            <GlassCard className={`h-full min-h-[500px] 
+                    ${activeModule === 'UNPAID' ? 'border-scifi-danger/30' :
+                activeModule === 'CYCLE' ? 'border-scifi-warning/30' :
+                  activeModule === 'PAYMENT' ? 'border-scifi-success/30' : ''}`}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  {/* Icons & Titles */}
+                  {currentView === 'MONTHLY_DEPT' && <><PieChart className="w-5 h-5 text-scifi-accent" /> {t.headers.strategic}</>}
+                  {currentView === 'WEEKLY_DEPT' && <><Activity className="w-5 h-5 text-scifi-accent" /> {t.headers.tactical}</>}
+                  {currentView === 'WEEKLY_COMPANY' && <><Database className="w-5 h-5 text-scifi-accent" /> {t.headers.vendor}</>}
+                  {currentView === 'COMPANY_DISTRIBUTION' && <><DollarSign className="w-5 h-5 text-scifi-accent" /> {t.headers.distrib}</>}
+
+                  {currentView === 'UNPAID_DEPT' && <><AlertTriangle className="w-5 h-5 text-scifi-danger" /> {t.headers.unpaidDeptTitle}</>}
+                  {currentView === 'UNPAID_COMPANY' && <><Database className="w-5 h-5 text-scifi-danger" /> {t.headers.unpaidCompTitle}</>}
+
+                  {currentView === 'CYCLE_ANALYSIS' && <><Clock className="w-5 h-5 text-scifi-warning" /> {t.headers.cycleAnalysis}</>}
+                  {currentView === 'CYCLE_FORECAST' && <><BarChart2 className="w-5 h-5 text-scifi-warning" /> {t.headers.forecastTitle}</>}
+
+                  {currentView === 'PAYMENT_MONTHLY' && <><PieChart className="w-5 h-5 text-scifi-success" /> {t.headers.paymentMonthlyTitle}</>}
+                  {currentView === 'PAYMENT_WEEKLY' && <><Activity className="w-5 h-5 text-scifi-success" /> {t.headers.paymentWeeklyTitle}</>}
+                  {currentView === 'PAYMENT_COMPANY_WEEKLY' && <><Database className="w-5 h-5 text-scifi-success" /> {t.headers.paymentCompTitle}</>}
+                  {currentView === 'PAYMENT_DISTRIBUTION' && <><TrendingDown className="w-5 h-5 text-scifi-success" /> {t.headers.paymentDistribTitle}</>}
+                </h2>
+              </div>
+
+              {renderChart()}
+
+            </GlassCard>
+
+            {/* Additional Panel for Cycle Forecast (Grid) */}
+            {activeModule === 'CYCLE' && currentView === 'CYCLE_FORECAST' && (
+              <PaymentIntelligence
+                forecastData={forecastSummary.allRecords}
+                historyData={processedData}
+                lang={lang}
+              />
+            )}
+          </div>
 
         </div>
       </main>
