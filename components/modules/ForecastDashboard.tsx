@@ -16,7 +16,6 @@ type ViewMode = 'HOME' | 'CHART' | 'DETAILS';
 
 export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSummary, processedData, lang }) => {
     const [viewMode, setViewMode] = useState<ViewMode>('HOME');
-    const [selectedDrillDept, setSelectedDrillDept] = useState<string>('');
     const t = translations[lang];
 
     // Render Home (Parallel Modules)
@@ -52,10 +51,7 @@ export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSu
 
                 {/* Module 2: Intelligence Node (Details) */}
                 <div
-                    onClick={() => {
-                        setSelectedDrillDept(''); // Reset drill-down when entering normally
-                        setViewMode('DETAILS');
-                    }}
+                    onClick={() => setViewMode('DETAILS')}
                     className="group relative overflow-hidden rounded-2xl bg-[#0f172a] border border-scifi-border hover:border-scifi-warning transition-all cursor-pointer p-8 h-[300px] flex flex-col justify-between shadow-lg hover:shadow-scifi-warning/20"
                 >
                     <div className="absolute top-0 left-0 w-1 h-full bg-scifi-warning group-hover:w-2 transition-all" />
@@ -103,10 +99,6 @@ export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSu
                     <ForecastChart
                         data={forecastSummary}
                         view="DEPT"
-                        onBarClick={(deptName) => {
-                            setSelectedDrillDept(deptName);
-                            setViewMode('DETAILS');
-                        }}
                     />
                 </GlassCard>
             </div>
@@ -130,9 +122,6 @@ export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSu
                     historyData={processedData}
                     lang={lang}
                     standalone={true}
-                    initialView={selectedDrillDept ? 'DEPT_COMPANY_DETAILS' : 'DEPT_SUMMARY'}
-                    initialDept={selectedDrillDept}
-                    key={selectedDrillDept} // Force re-mount to apply initial props
                 />
             </div>
         );
