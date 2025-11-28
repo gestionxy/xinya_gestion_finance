@@ -96,11 +96,60 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
         const depts = Object.keys(byDeptCompany).sort();
         const currentDept = selectedDept || depts[0];
 
-        const companyData = currentDept && byDeptCompany[currentDept]
-            ? Object.entries(byDeptCompany[currentDept])
-                .map(([name, value]) => ({ name, value }))
-                .sort((a, b) => b.value - a.value)
-            : [];
+        // Prepare data with latest payment info
+        const companyData = useMemo(() => {
+            if (!currentDept || !byDeptCompany[currentDept]) return [];
+
+            return Object.entries(byDeptCompany[currentDept])
+                .map(([name, value]) => {
+                    // Find latest payment info for this company in this dept
+                    // Sort by Invoice Date desc, then Check Date desc
+                    const companyHistory = historyData
+                        .filter(r => r.department === currentDept && r.companyName === name && r.checkDate)
+                        .sort((a, b) => {
+                            const dateA = a.invoiceDate + (a.checkDate || '');
+                            const dateB = b.invoiceDate + (b.checkDate || '');
+                            return dateB.localeCompare(dateA);
+                        });
+
+                    const latest = companyHistory[0];
+
+                    return {
+                        name,
+                        value,
+                        latestInvoiceDate: latest?.invoiceDate,
+                        latestCheckDate: latest?.checkDate,
+                        latestCheckNumber: latest?.checkNumber,
+                        latestCheckTotal: latest?.checkTotalAmount
+                    };
+                })
+                .sort((a, b) => b.value - a.value);
+        }, [currentDept, byDeptCompany, historyData]);
+
+        const CustomTooltip = ({ active, payload, label }: any) => {
+            if (active && payload && payload.length) {
+                const data = payload[0].payload;
+                return (
+                    <div className="bg-[#1a1a1a] border border-[#333] p-3 rounded shadow-xl text-xs">
+                        <p className="font-bold text-white mb-2">{label}</p>
+                        <p className="text-scifi-warning mb-2">
+                            {t.labels.unpaid}: <span className="font-mono">${data.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </p>
+                        {data.latestCheckDate ? (
+                            <div className="space-y-1 text-gray-400 border-t border-gray-700 pt-2 mt-2">
+                                <p>{t.labels.invoiceDate}: <span className="text-white font-mono">{data.latestInvoiceDate?.slice(0, 10)}</span></p>
+                                <p>{t.labels.checkDate}: <span className="text-white font-mono">{data.latestCheckDate?.slice(0, 10)}</span></p>
+                                <p>{t.labels.checkNo}: <span className="text-scifi-primary font-mono">{data.latestCheckNumber}</span></p>
+                                <p>{t.labels.checkTotal}: <span className="text-scifi-success font-mono">${(data.latestCheckTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+                            </div>
+                        ) : (
+                            <p className="text-gray-500 italic mt-2 border-t border-gray-700 pt-2">No payment history</p>
+                        )}
+                    </div>
+                );
+            }
+            return null;
+        };
 
         return (
             <div className="space-y-4">
@@ -119,10 +168,7 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                             <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
                             <XAxis dataKey="name" stroke="#888" angle={-30} textAnchor="end" interval={0} height={80} />
                             <YAxis stroke="#888" />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
-                                cursor={{ fill: 'rgba(255,255,255,0.1)' }}
-                            />
+                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.1)' }} />
                             <Bar dataKey="value" name={t.labels.unpaid} fill="#f97316" radius={[4, 4, 0, 0]}>
                                 {companyData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={`hsl(${30 + index * 10}, 90%, 50%)`} />
@@ -197,8 +243,8 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                                         key={m}
                                         onClick={() => { setDetailViewMode(m); setFilterValue(''); }}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${detailViewMode === m
-                                                ? 'bg-scifi-primary text-black shadow-[0_0_10px_rgba(0,255,255,0.3)]'
-                                                : 'bg-scifi-card border border-scifi-border text-gray-400 hover:text-white'
+                                            ? 'bg-scifi-primary text-black shadow-[0_0_10px_rgba(0,255,255,0.3)]'
+                                            : 'bg-scifi-card border border-scifi-border text-gray-400 hover:text-white'
                                             }`}
                                     >
                                         {m === 'PREDICTED' && t.table.mode1}
@@ -502,8 +548,8 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                             key={v}
                             onClick={() => { setTopLevelView(v); setFilterValue(''); }}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${topLevelView === v
-                                    ? 'bg-scifi-primary text-black shadow-lg'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-scifi-primary text-black shadow-lg'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             {v === 'DEPT_SUMMARY' && t.views.unpaidDept}
