@@ -11,16 +11,18 @@ interface Props {
     historyData: PurchaseRecord[]; // Processed history data (for paid search)
     lang: Language;
     standalone?: boolean;
+    initialView?: TopLevelView;
+    initialDept?: string;
 }
 
 type TopLevelView = 'DEPT_SUMMARY' | 'DEPT_COMPANY_DETAILS' | 'PREDICTED_DETAILS';
 type DetailViewMode = 'PREDICTED' | 'ALL_UNPAID' | 'PAID_HISTORY' | 'CHECK_SEARCH';
 
-export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData, lang, standalone = false }) => {
+export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData, lang, standalone = false, initialView, initialDept }) => {
     const t = translations[lang];
     const [expanded, setExpanded] = useState(standalone);
-    const [topLevelView, setTopLevelView] = useState<TopLevelView>('DEPT_SUMMARY');
-    const [selectedDept, setSelectedDept] = useState<string>('');
+    const [topLevelView, setTopLevelView] = useState<TopLevelView>(initialView || 'DEPT_SUMMARY');
+    const [selectedDept, setSelectedDept] = useState<string>(initialDept || '');
     const [detailViewMode, setDetailViewMode] = useState<DetailViewMode>('PREDICTED');
     const [filterValue, setFilterValue] = useState<string>(''); // Company or Check Number
     const [isExpanderOpen, setIsExpanderOpen] = useState(false);
