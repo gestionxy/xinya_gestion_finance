@@ -16,6 +16,8 @@ type ViewMode = 'HOME' | 'CHART' | 'DETAILS';
 
 export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSummary, processedData, lang }) => {
     const [viewMode, setViewMode] = useState<ViewMode>('HOME');
+    const [chartView, setChartView] = useState<'DEPT' | 'COMPANY'>('DEPT');
+    const [selectedChartDept, setSelectedChartDept] = useState<string>('');
     const t = translations[lang];
 
     // Render Home (Parallel Modules)
@@ -24,7 +26,11 @@ export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSu
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in zoom-in duration-300">
                 {/* Module 1: Overview Chart */}
                 <div
-                    onClick={() => setViewMode('CHART')}
+                    onClick={() => {
+                        setChartView('DEPT');
+                        setSelectedChartDept('');
+                        setViewMode('CHART');
+                    }}
                     className="group relative overflow-hidden rounded-2xl bg-[#0f172a] border border-scifi-border hover:border-scifi-primary transition-all cursor-pointer p-8 h-[300px] flex flex-col justify-between shadow-lg hover:shadow-scifi-primary/20"
                 >
                     <div className="absolute top-0 left-0 w-1 h-full bg-scifi-primary group-hover:w-2 transition-all" />
@@ -83,22 +89,41 @@ export const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ forecastSu
     if (viewMode === 'CHART') {
         return (
             <div className="animate-in slide-in-from-right duration-300">
-                <button
-                    onClick={() => setViewMode('HOME')}
-                    className="mb-4 flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-mono uppercase"
-                >
-                    <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-                </button>
+                <div className="flex items-center justify-between mb-4">
+                    <button
+                        onClick={() => {
+                            if (chartView === 'COMPANY') {
+                                setChartView('DEPT');
+                                setSelectedChartDept('');
+                            } else {
+                                setViewMode('HOME');
+                            }
+                        }}
+                        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-mono uppercase"
+                    >
+                        <ArrowLeft className="w-4 h-4" /> {chartView === 'COMPANY' ? 'Back to Departments' : 'Back to Dashboard'}
+                    </button>
+                    {chartView === 'COMPANY' && (
+                        <span className="text-scifi-primary font-bold">{selectedChartDept}</span>
+                    )}
+                </div>
                 <GlassCard className="border-scifi-primary/30">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold text-white flex items-center gap-2">
                             <BarChart2 className="w-5 h-5 text-scifi-primary" />
-                            {t.headers.forecastTitle}
+                            付款预测及详情
                         </h2>
                     </div>
                     <ForecastChart
                         data={forecastSummary}
-                        view="DEPT"
+                        view={chartView}
+                        selectedDept={selectedChartDept}
+                        onBarClick={(name) => {
+                            if (chartView === 'DEPT') {
+                                setSelectedChartDept(name);
+                                setChartView('COMPANY');
+                            }
+                        }}
                     />
                 </GlassCard>
             </div>
