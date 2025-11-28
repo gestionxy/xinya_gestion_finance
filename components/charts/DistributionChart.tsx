@@ -65,7 +65,7 @@ export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies }) =>
             range={[0, sortedCompanies.length - 1]} // Ensure Y axis covers all
           />
           <ZAxis type="number" dataKey="z" range={[50, 1000]} name="Amount" />
-          <Tooltip content={<CustomBubbleTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+          <Tooltip content={<CustomBubbleTooltip />} cursor={{ strokeDasharray: '3 3' }} wrapperStyle={{ zIndex: 1000 }} />
           <Scatter name="Purchases" data={processedData} fill="#06b6d4" fillOpacity={0.6} stroke="#fff" strokeWidth={1} />
         </ScatterChart>
       </ResponsiveContainer>

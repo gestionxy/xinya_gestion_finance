@@ -78,7 +78,7 @@ export const WeeklyDeptChart: React.FC<Props> = ({ data, departments, selectedMo
             tick={{ fontSize: 12, fontFamily: 'JetBrains Mono' }}
             tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} wrapperStyle={{ zIndex: 1000 }} />
           <Legend />
           {departments.map((dept, index) => (
             <Line

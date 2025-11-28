@@ -88,7 +88,7 @@ export const CompanyWeekChart: React.FC<Props> = ({ data, department }) => {
             stroke="#94a3b8"
             tick={{ fontSize: 12, fontFamily: 'JetBrains Mono' }}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} wrapperStyle={{ zIndex: 1000 }} />
           <Legend />
           {companies.map((comp, index) => (
             <Line

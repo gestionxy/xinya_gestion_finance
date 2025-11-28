@@ -175,13 +175,16 @@ const App: React.FC = () => {
         return <MonthlyPurchaseChart key="monthly-dept" data={monthlyData} departments={sortedDepartments} />;
 
       case 'WEEKLY_DEPT':
-        const weeklyData = getWeeklySummary(data, selectedMonth);
-        return <WeeklyDeptChart key={`weekly-dept-${selectedMonth}`} data={weeklyData} departments={sortedDepartments} selectedMonth={selectedMonth} />;
+        // Ensure we have a selected month, otherwise default to the last available month
+        const safeMonth = selectedMonth || availableMonths[availableMonths.length - 1] || '';
+        const weeklyData = getWeeklySummary(data, safeMonth);
+        return <WeeklyDeptChart key={`weekly-dept-${safeMonth}`} data={weeklyData} departments={sortedDepartments} selectedMonth={safeMonth} />;
 
       case 'WEEKLY_COMPANY':
-        const filteredForCompany = data.filter(r => r.department === selectedDept && r.invoiceDate.startsWith(selectedMonth));
+        const safeMonthComp = selectedMonth || availableMonths[availableMonths.length - 1] || '';
+        const filteredForCompany = data.filter(r => r.department === selectedDept && r.invoiceDate.startsWith(safeMonthComp));
         const companyWeeklyData = getWeeklySummary(filteredForCompany);
-        return <CompanyWeekChart key={`weekly-comp-${selectedMonth}-${selectedDept}`} data={companyWeeklyData} department={selectedDept} />;
+        return <CompanyWeekChart key={`weekly-comp-${safeMonthComp}-${selectedDept}`} data={companyWeeklyData} department={selectedDept} />;
 
       case 'COMPANY_DISTRIBUTION':
         const { chartData, sortedCompanies } = getCompanyBubbleData(
