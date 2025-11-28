@@ -81,9 +81,21 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                         contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
                         cursor={{ fill: 'rgba(255,255,255,0.1)' }}
                     />
-                    <Bar dataKey="value" name={t.labels.unpaid} fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                    <Bar
+                        dataKey="value"
+                        name={t.labels.unpaid}
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
+                        onClick={(data) => {
+                            if (data && data.name) {
+                                setSelectedDept(data.name);
+                                setTopLevelView('DEPT_COMPANY_DETAILS');
+                            }
+                        }}
+                        cursor="pointer"
+                    >
                         {byDept.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={`hsl(${210 + index * 10}, 70%, 50%)`} />
+                            <Cell key={`cell-${index}`} fill={`hsl(${210 + index * 10}, 70%, 50%)`} cursor="pointer" />
                         ))}
                     </Bar>
                 </BarChart>
