@@ -5,7 +5,6 @@ import { UnpaidDeptChart, UnpaidCompanyChart } from '../charts/UnpaidCharts';
 import { translations } from '../../services/translations';
 import { GlassCard } from '../ui/GlassCard';
 
-
 interface UnpaidDashboardProps {
     unpaidSummary: UnpaidSummary;
     lang: Language;
@@ -21,7 +20,7 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
 
     // Filter data for the detail table
     const detailData = React.useMemo(() => {
-        if (!selectedCompany) return [];
+        if (!selectedCompany || !unpaidSummary.details) return [];
         return unpaidSummary.details.filter(item =>
             item.companyName === selectedCompany &&
             item.department === selectedDept
