@@ -384,138 +384,140 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
           {/* Sidebar Controls */}
-          <div className="lg:col-span-1 space-y-6">
-            <GlassCard title={t.control.panel}>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.viewSelect}</label>
-                  <div className="flex flex-col gap-2">
-                    {/* PURCHASE MENU */}
-                    {activeModule === 'PURCHASE' && (
-                      <>
-                        <button onClick={() => setCurrentView('MONTHLY_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'MONTHLY_DEPT' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.monthlyDept}</button>
-                        <button onClick={() => setCurrentView('WEEKLY_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'WEEKLY_DEPT' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.weeklyDept}</button>
-                        <button onClick={() => setCurrentView('WEEKLY_COMPANY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'WEEKLY_COMPANY' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.weeklyComp}</button>
-                        <button onClick={() => setCurrentView('COMPANY_DISTRIBUTION')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'COMPANY_DISTRIBUTION' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.distrib}</button>
-                      </>
-                    )}
-
-
-
-                    {/* CYCLE MENU */}
-                    {activeModule === 'CYCLE' && (
-                      <>
-                        <button onClick={() => setCurrentView('CYCLE_ANALYSIS')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'CYCLE_ANALYSIS' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.cycleAnalysis}</button>
-                        <button onClick={() => setCurrentView('CYCLE_FORECAST')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'CYCLE_FORECAST' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.cycleForecast}</button>
-                      </>
-                    )}
-
-                    {/* PAYMENT MENU */}
-                    {activeModule === 'PAYMENT' && (
-                      <>
-                        <button onClick={() => setCurrentView('PAYMENT_MONTHLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_MONTHLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentMonthly}</button>
-                        <button onClick={() => setCurrentView('PAYMENT_WEEKLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_WEEKLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentWeekly}</button>
-                        <button onClick={() => setCurrentView('PAYMENT_COMPANY_WEEKLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_COMPANY_WEEKLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentCompWeekly}</button>
-                        <button onClick={() => setCurrentView('PAYMENT_DISTRIBUTION')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_DISTRIBUTION' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentDistrib}</button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="h-px bg-scifi-border my-2" />
-
-                {/* CONTROLS BASED ON VIEW */}
-
-                {/* 1. Global Dept/Month Selectors (Used in multiple views) */}
-                {['WEEKLY_DEPT', 'WEEKLY_COMPANY', 'PAYMENT_WEEKLY', 'PAYMENT_COMPANY_WEEKLY'].includes(currentView) && (
-                  <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
-                )}
-
-                {/* Multi-Select for Dept Views */}
-                {['MONTHLY_DEPT', 'WEEKLY_DEPT', 'PAYMENT_MONTHLY', 'PAYMENT_WEEKLY'].includes(currentView) && (
-                  <MultiSelect
-                    label="选择部门 (多选)"
-                    options={sortedDepartments}
-                    selected={selectedMultiDepts}
-                    onChange={setSelectedMultiDepts}
-                  />
-                )}
-
-                {['WEEKLY_COMPANY', 'COMPANY_DISTRIBUTION', 'CYCLE_ANALYSIS', 'PAYMENT_COMPANY_WEEKLY', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
-                  <Select label={t.control.deptSelect} options={sortedDepartments} value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} />
-                )}
-
-                {/* UNPAID COMPANY Specific - REMOVED (Handled by UnpaidDashboard) */}
-
-                {/* CYCLE ANALYSIS Specific */}
-                {currentView === 'CYCLE_ANALYSIS' && (
-                  <>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.sortOption}</label>
-                      <div className="flex gap-2">
-                        <button onClick={() => setCycleSort('MEDIAN')} className={`flex-1 py-1.5 text-xs rounded border ${cycleSort === 'MEDIAN' ? 'bg-scifi-warning/20 border-scifi-warning text-scifi-warning' : 'border-scifi-border text-gray-400'}`}>{t.control.sortByMedian}</button>
-                        <button onClick={() => setCycleSort('AMOUNT')} className={`flex-1 py-1.5 text-xs rounded border ${cycleSort === 'AMOUNT' ? 'bg-scifi-warning/20 border-scifi-warning text-scifi-warning' : 'border-scifi-border text-gray-400'}`}>{t.control.sortByAmount}</button>
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-scifi-warning/10 border border-scifi-warning/20 rounded text-xs text-scifi-warning">{t.alerts.cycleInfo}</div>
-                  </>
-                )}
-
-                {/* DISTRIBUTION Specific Controls */}
-                {['COMPANY_DISTRIBUTION', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
-                  <>
-                    {/* Mode Toggle */}
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs text-scifi-accent font-mono uppercase">时间范围模式</label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setDistribMode('MONTH')}
-                          className={`flex-1 py-1.5 text-xs rounded border transition-colors ${distribMode === 'MONTH' ? 'bg-scifi-primary/20 border-scifi-primary text-scifi-primary' : 'border-scifi-border text-gray-400 hover:bg-white/5'}`}
-                        >
-                          按月份
-                        </button>
-                        <button
-                          onClick={() => setDistribMode('RANGE')}
-                          className={`flex-1 py-1.5 text-xs rounded border transition-colors ${distribMode === 'RANGE' ? 'bg-scifi-primary/20 border-scifi-primary text-scifi-primary' : 'border-scifi-border text-gray-400 hover:bg-white/5'}`}
-                        >
-                          按日期
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Conditional Inputs */}
-                    {distribMode === 'MONTH' ? (
-                      <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
-                    ) : (
-                      <>
+          {activeModule !== 'UNPAID' && (
+            <div className="lg:col-span-1 space-y-6">
+              <GlassCard title={t.control.panel}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.viewSelect}</label>
+                    <div className="flex flex-col gap-2">
+                      {/* PURCHASE MENU */}
+                      {activeModule === 'PURCHASE' && (
                         <>
-                          <DatePicker
-                            label={t.control.startDate}
-                            value={startDate}
-                            onChange={setStartDate}
-                          />
-                          <DatePicker
-                            label={t.control.endDate}
-                            value={endDate}
-                            onChange={setEndDate}
-                          />
+                          <button onClick={() => setCurrentView('MONTHLY_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'MONTHLY_DEPT' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.monthlyDept}</button>
+                          <button onClick={() => setCurrentView('WEEKLY_DEPT')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'WEEKLY_DEPT' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.weeklyDept}</button>
+                          <button onClick={() => setCurrentView('WEEKLY_COMPANY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'WEEKLY_COMPANY' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.weeklyComp}</button>
+                          <button onClick={() => setCurrentView('COMPANY_DISTRIBUTION')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'COMPANY_DISTRIBUTION' ? 'bg-scifi-primary/20 text-scifi-primary border border-scifi-primary/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.distrib}</button>
                         </>
-                      </>
-                    )}
-                  </>
-                )}
+                      )}
 
-                {/* PAYMENT INFO */}
-                {activeModule === 'PAYMENT' && (
-                  <div className="mt-4 p-3 bg-scifi-success/10 border border-scifi-success/20 rounded text-xs text-scifi-success">{t.alerts.paymentInfo}</div>
-                )}
 
-              </div>
-            </GlassCard>
-          </div>
+
+                      {/* CYCLE MENU */}
+                      {activeModule === 'CYCLE' && (
+                        <>
+                          <button onClick={() => setCurrentView('CYCLE_ANALYSIS')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'CYCLE_ANALYSIS' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.cycleAnalysis}</button>
+                          <button onClick={() => setCurrentView('CYCLE_FORECAST')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'CYCLE_FORECAST' ? 'bg-scifi-warning/20 text-scifi-warning border border-scifi-warning/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.cycleForecast}</button>
+                        </>
+                      )}
+
+                      {/* PAYMENT MENU */}
+                      {activeModule === 'PAYMENT' && (
+                        <>
+                          <button onClick={() => setCurrentView('PAYMENT_MONTHLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_MONTHLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentMonthly}</button>
+                          <button onClick={() => setCurrentView('PAYMENT_WEEKLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_WEEKLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentWeekly}</button>
+                          <button onClick={() => setCurrentView('PAYMENT_COMPANY_WEEKLY')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_COMPANY_WEEKLY' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentCompWeekly}</button>
+                          <button onClick={() => setCurrentView('PAYMENT_DISTRIBUTION')} className={`text-left px-3 py-2 rounded text-sm transition-all ${currentView === 'PAYMENT_DISTRIBUTION' ? 'bg-scifi-success/20 text-scifi-success border border-scifi-success/50' : 'hover:bg-scifi-card text-gray-400'}`}>{t.views.paymentDistrib}</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-scifi-border my-2" />
+
+                  {/* CONTROLS BASED ON VIEW */}
+
+                  {/* 1. Global Dept/Month Selectors (Used in multiple views) */}
+                  {['WEEKLY_DEPT', 'WEEKLY_COMPANY', 'PAYMENT_WEEKLY', 'PAYMENT_COMPANY_WEEKLY'].includes(currentView) && (
+                    <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+                  )}
+
+                  {/* Multi-Select for Dept Views */}
+                  {['MONTHLY_DEPT', 'WEEKLY_DEPT', 'PAYMENT_MONTHLY', 'PAYMENT_WEEKLY'].includes(currentView) && (
+                    <MultiSelect
+                      label="选择部门 (多选)"
+                      options={sortedDepartments}
+                      selected={selectedMultiDepts}
+                      onChange={setSelectedMultiDepts}
+                    />
+                  )}
+
+                  {['WEEKLY_COMPANY', 'COMPANY_DISTRIBUTION', 'CYCLE_ANALYSIS', 'PAYMENT_COMPANY_WEEKLY', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
+                    <Select label={t.control.deptSelect} options={sortedDepartments} value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} />
+                  )}
+
+                  {/* UNPAID COMPANY Specific - REMOVED (Handled by UnpaidDashboard) */}
+
+                  {/* CYCLE ANALYSIS Specific */}
+                  {currentView === 'CYCLE_ANALYSIS' && (
+                    <>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs text-scifi-accent font-mono uppercase">{t.control.sortOption}</label>
+                        <div className="flex gap-2">
+                          <button onClick={() => setCycleSort('MEDIAN')} className={`flex-1 py-1.5 text-xs rounded border ${cycleSort === 'MEDIAN' ? 'bg-scifi-warning/20 border-scifi-warning text-scifi-warning' : 'border-scifi-border text-gray-400'}`}>{t.control.sortByMedian}</button>
+                          <button onClick={() => setCycleSort('AMOUNT')} className={`flex-1 py-1.5 text-xs rounded border ${cycleSort === 'AMOUNT' ? 'bg-scifi-warning/20 border-scifi-warning text-scifi-warning' : 'border-scifi-border text-gray-400'}`}>{t.control.sortByAmount}</button>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-scifi-warning/10 border border-scifi-warning/20 rounded text-xs text-scifi-warning">{t.alerts.cycleInfo}</div>
+                    </>
+                  )}
+
+                  {/* DISTRIBUTION Specific Controls */}
+                  {['COMPANY_DISTRIBUTION', 'PAYMENT_DISTRIBUTION'].includes(currentView) && (
+                    <>
+                      {/* Mode Toggle */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs text-scifi-accent font-mono uppercase">时间范围模式</label>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setDistribMode('MONTH')}
+                            className={`flex-1 py-1.5 text-xs rounded border transition-colors ${distribMode === 'MONTH' ? 'bg-scifi-primary/20 border-scifi-primary text-scifi-primary' : 'border-scifi-border text-gray-400 hover:bg-white/5'}`}
+                          >
+                            按月份
+                          </button>
+                          <button
+                            onClick={() => setDistribMode('RANGE')}
+                            className={`flex-1 py-1.5 text-xs rounded border transition-colors ${distribMode === 'RANGE' ? 'bg-scifi-primary/20 border-scifi-primary text-scifi-primary' : 'border-scifi-border text-gray-400 hover:bg-white/5'}`}
+                          >
+                            按日期
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Conditional Inputs */}
+                      {distribMode === 'MONTH' ? (
+                        <Select label={t.control.monthSelect} options={availableMonths} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+                      ) : (
+                        <>
+                          <>
+                            <DatePicker
+                              label={t.control.startDate}
+                              value={startDate}
+                              onChange={setStartDate}
+                            />
+                            <DatePicker
+                              label={t.control.endDate}
+                              value={endDate}
+                              onChange={setEndDate}
+                            />
+                          </>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* PAYMENT INFO */}
+                  {activeModule === 'PAYMENT' && (
+                    <div className="mt-4 p-3 bg-scifi-success/10 border border-scifi-success/20 rounded text-xs text-scifi-success">{t.alerts.paymentInfo}</div>
+                  )}
+
+                </div>
+              </GlassCard>
+            </div>
+          )}
 
           {/* Main Chart Area */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className={`${activeModule === 'UNPAID' ? 'lg:col-span-4' : 'lg:col-span-3'} space-y-6`}>
             <GlassCard className={`h-full min-h-[500px] 
               ${activeModule === 'UNPAID' ? 'border-scifi-danger/30' :
                 activeModule === 'CYCLE' ? 'border-scifi-warning/30' :
