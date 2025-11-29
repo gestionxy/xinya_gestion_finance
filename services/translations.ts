@@ -42,7 +42,7 @@ export const translations = {
       vendor: '供应商分析',
       distrib: '采购频率分布',
       unpaidTotal: '当前应付未付总额',
-      unpaidDeptTitle: '各部门应付未付金额总览',
+      unpaidDeptTitle: '应付未付金额总览',
       unpaidCompTitle: '公司应付未付明细',
       cycleAnalysis: '付款周期指标 (中位数)',
       forecastTotal: '近期应付款预测总额',
