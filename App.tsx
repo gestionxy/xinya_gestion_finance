@@ -248,17 +248,17 @@ const App: React.FC = () => {
       // --- Payment Module (Uses Processed Data - Paid Only) ---
       case 'PAYMENT_MONTHLY':
         const monthlyPaidData = getMonthlyPaidSummary(processedData);
-        return <MonthlyPurchaseChart key="payment-monthly" data={monthlyPaidData} departments={displayDepts} />;
+        return <MonthlyPurchaseChart key="payment-monthly" data={monthlyPaidData} departments={displayDepts} type="PAYMENT" />;
 
       case 'PAYMENT_WEEKLY':
         const weeklyPaidData = getWeeklyPaidSummary(processedData, selectedMonth);
-        return <WeeklyDeptChart key={`payment-weekly-${selectedMonth}`} data={weeklyPaidData} departments={displayDepts} selectedMonth={selectedMonth} />;
+        return <WeeklyDeptChart key={`payment-weekly-${selectedMonth}`} data={weeklyPaidData} departments={displayDepts} selectedMonth={selectedMonth} type="PAYMENT" />;
 
       case 'PAYMENT_COMPANY_WEEKLY':
         // Reuse CompanyWeekChart but pass paid data structure
         const filteredPaidCompany = processedData.filter(r => r.department === selectedDept);
         const companyPaidWeeklyData = getWeeklyPaidSummary(filteredPaidCompany, selectedMonth);
-        return <CompanyWeekChart key={`payment-comp-${selectedMonth}-${selectedDept}`} data={companyPaidWeeklyData} department={selectedDept} />;
+        return <CompanyWeekChart key={`payment-comp-${selectedMonth}-${selectedDept}`} data={companyPaidWeeklyData} department={selectedDept} type="PAYMENT" />;
 
       case 'PAYMENT_DISTRIBUTION':
         const [payDistStart, payDistEnd] = getDistributionRange();

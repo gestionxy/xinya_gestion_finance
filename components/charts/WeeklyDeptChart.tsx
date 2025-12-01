@@ -6,13 +6,14 @@ interface Props {
   data: WeeklySummary[];
   departments: string[];
   selectedMonth: string;
+  type?: 'PURCHASE' | 'PAYMENT';
 }
 
 const COLORS = [
   "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#d946ef", "#f43f5e", "#f97316", "#eab308", "#84cc16"
 ];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, type }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const total = data.total || 0;
@@ -23,7 +24,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="bg-slate-900 border border-scifi-border p-3 rounded shadow-xl text-xs z-50">
         <div className="font-mono text-scifi-accent mb-2 border-b border-scifi-border pb-1">
-          周总采购金额：{total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          {type === 'PAYMENT' ? '周总付款金额' : '周总采购金额'}：{total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </div>
         <div className="flex flex-col gap-2">
           {sortedPayload.filter((e: any) => e.value > 0).map((entry: any, index: number) => {
@@ -36,7 +37,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   <span className="text-gray-300">部门：{entry.name}</span>
                 </div>
                 <div className="pl-4 text-gray-400">
-                  采购金额：{amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} <br />
+                  {type === 'PAYMENT' ? '付款金额' : '采购金额'}：{amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} <br />
                   占比：{(percent * 100).toFixed(1)}%
                 </div>
               </div>
@@ -49,7 +50,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export const WeeklyDeptChart: React.FC<Props> = ({ data, departments, selectedMonth }) => {
+export const WeeklyDeptChart: React.FC<Props> = ({ data, departments, selectedMonth, type = 'PURCHASE' }) => {
   const chartData = useMemo(() => {
     return data.map(item => {
       const flatItem: any = { week: item.weekRange, weekStart: item.weekStart, total: item.totalWeeklyAmount || item.totalAmount };
@@ -78,7 +79,7 @@ export const WeeklyDeptChart: React.FC<Props> = ({ data, departments, selectedMo
             tick={{ fontSize: 12, fontFamily: 'JetBrains Mono' }}
             tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} wrapperStyle={{ zIndex: 1000 }} />
+          <Tooltip content={<CustomTooltip type={type} />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} wrapperStyle={{ zIndex: 1000 }} />
           <Legend />
           {departments.map((dept, index) => (
             <Line
