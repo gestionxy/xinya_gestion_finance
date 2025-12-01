@@ -57,13 +57,16 @@ export const PaymentCycleBarChart: React.FC<CycleProps> = ({ data, sortBy }) => 
               if (active && payload && payload.length) {
                 const d = payload[0].payload as PaymentCycleMetric;
                 return (
-                  <div className="bg-scifi-bg/95 border border-scifi-border p-3 rounded shadow-xl backdrop-blur-md text-xs">
+                  <div className="bg-scifi-bg/95 border border-scifi-border p-3 rounded shadow-xl backdrop-blur-md text-xs min-w-[200px]">
                     <div className="font-bold text-scifi-primary mb-2 border-b border-scifi-border pb-1">{d.companyName}</div>
                     <div className="space-y-1 font-mono text-gray-300">
-                      <div>Median Days: <span className="text-white font-bold">{d.medianDays.toFixed(1)}</span></div>
-                      <div>Total Amount: <span className="text-scifi-accent">${d.totalAmount.toLocaleString()}</span></div>
-                      <div>Count: <span>{d.invoiceCount}</span></div>
-                      <div className="text-[10px] text-gray-500 mt-1">Range: {d.minDays} - {d.maxDays} days</div>
+                      <div className="flex justify-between"><span>发票数量:</span> <span className="text-white">{d.invoiceCount}</span></div>
+                      <div className="flex justify-between"><span>发票金额:</span> <span className="text-scifi-accent">${d.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                      <div className="border-t border-gray-700 my-1"></div>
+                      <div className="flex justify-between"><span>付款天数中位数:</span> <span className="text-white font-bold">{d.medianDays.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>最短付款天数:</span> <span className="text-white">{d.minDays.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>最长付款天数:</span> <span className="text-white">{d.maxDays.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>平均付款天数:</span> <span className="text-white">{d.avgDays.toFixed(2)}</span></div>
                     </div>
                   </div>
                 )
