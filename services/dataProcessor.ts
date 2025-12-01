@@ -402,25 +402,24 @@ export const getPaidCompanyBubbleData = (
   const companyTotals: Record<string, number> = {};
 
   filtered.forEach(r => {
-    const date = parseISO(r.checkDate!);
+    // Daily Logic using Check Date
+    const dateStr = r.checkDate!.slice(0, 10); // YYYY-MM-DD
     const amount = r.actualPaidAmount || 0;
 
-    const start = startOfWeek(date, { weekStartsOn: 1 });
-    const end = endOfWeek(date, { weekStartsOn: 1 });
-    const weekStartStr = format(start, 'yyyy-MM-dd');
-    const weekRange = `${weekStartStr} ~ ${format(end, 'yyyy-MM-dd')}`;
-    const key = `${r.companyName}-${weekStartStr}`;
+    const key = `${r.companyName}-${dateStr}`;
 
     if (!grouped[key]) {
       grouped[key] = {
         companyName: r.companyName,
-        weekStart: weekStartStr,
-        weekRange: weekRange,
+        weekStart: dateStr, // Reusing field for Date (X-axis)
+        weekRange: dateStr, // Reusing field for Date Display
         amount: 0,
-        totalCompanyAmount: 0
+        totalCompanyAmount: 0,
+        invoiceCount: 0
       };
     }
     grouped[key].amount += amount;
+    grouped[key].invoiceCount = (grouped[key].invoiceCount || 0) + 1;
 
     if (!companyTotals[r.companyName]) companyTotals[r.companyName] = 0;
     companyTotals[r.companyName] += amount;

@@ -268,7 +268,7 @@ const App: React.FC = () => {
           selectedBubbleCompanies,
           [payDistStart, payDistEnd]
         );
-        return <DistributionChart key={`payment-distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={paidBubble} sortedCompanies={paidSorted} dateRange={[payDistStart, payDistEnd]} />;
+        return <DistributionChart key={`payment-distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={paidBubble} sortedCompanies={paidSorted} dateRange={[payDistStart, payDistEnd]} type="PAYMENT" />;
 
       default:
         return null;

@@ -6,9 +6,10 @@ interface Props {
   data: CompanyBubbleData[];
   sortedCompanies: string[]; // Ordered by total amount (Small to Large for Y-axis Bottom to Top)
   dateRange: [Date, Date]; // Start and End date for the axis
+  type?: 'PURCHASE' | 'PAYMENT'; // Distinguish between Purchase and Payment for labels
 }
 
-export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies, dateRange }) => {
+export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies, dateRange, type = 'PURCHASE' }) => {
 
   // Recharts Scatter needs numeric X and Y.
   // X: Time (timestamp)
@@ -32,7 +33,7 @@ export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies, date
           <div className="text-gray-400 mb-1">日期：{data.weekRange}</div>
           <div className="text-gray-400 mb-1">交易笔数：{data.invoiceCount} 笔</div>
           <div className="text-white font-mono">
-            采购金额：<span className="text-scifi-accent">{data.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            {type === 'PAYMENT' ? '支付金额' : '采购金额'}：<span className="text-scifi-accent">{data.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
       );
