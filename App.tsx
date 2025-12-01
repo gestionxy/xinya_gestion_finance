@@ -15,7 +15,7 @@ import {
   getPaidCompanyBubbleData
 } from './services/dataProcessor';
 import { supabase, mapDbToPurchaseRecord } from './services/supabase';
-import { ChartViewType, PurchaseRecord, Language } from './types';
+import { ChartViewType, PurchaseRecord, Language, CompanyBubbleData } from './types';
 import { GlassCard } from './components/ui/GlassCard';
 import { Select } from './components/ui/Select';
 import { MultiSelect } from './components/ui/MultiSelect';
@@ -29,6 +29,7 @@ import { PaymentCycleBarChart, ForecastChart } from './components/charts/CycleCh
 import { PaymentIntelligence } from './components/PaymentIntelligence';
 import { ForecastDashboard } from './components/modules/ForecastDashboard';
 import { UnpaidDashboard } from './components/modules/UnpaidDashboard';
+import { PaymentDetailTable } from './components/modules/PaymentDetailTable';
 import { AdminUpload } from './components/AdminUpload';
 import { format } from 'date-fns';
 import { translations } from './services/translations';
@@ -55,6 +56,7 @@ const App: React.FC = () => {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedBubbleCompanies, setSelectedBubbleCompanies] = useState<string[]>([]); // Empty = All
+  const [selectedBubble, setSelectedBubble] = useState<CompanyBubbleData | null>(null); // For drill-down
 
   const t = translations[lang];
 
@@ -182,6 +184,22 @@ const App: React.FC = () => {
     return getPaymentForecast(processedData, allMetrics);
   }, [processedData]);
 
+  // Drill-down Data
+  const drillDownData = useMemo(() => {
+    if (!selectedBubble) return [];
+    return processedData.filter(r => {
+      const isCompany = r.companyName === selectedBubble.companyName;
+      // Match Check Date (YYYY-MM-DD)
+      const checkDate = r.checkDate ? r.checkDate.slice(0, 10) : '';
+      const isDate = checkDate === selectedBubble.weekStart; // weekStart holds the date string in daily mode
+      return isCompany && isDate;
+    });
+  }, [selectedBubble, processedData]);
+
+  const handleBubbleClick = (data: CompanyBubbleData) => {
+    setSelectedBubble(data);
+  };
+
 
   // View Handlers
   const renderChart = () => {
@@ -268,7 +286,25 @@ const App: React.FC = () => {
           selectedBubbleCompanies,
           [payDistStart, payDistEnd]
         );
-        return <DistributionChart key={`payment-distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={paidBubble} sortedCompanies={paidSorted} dateRange={[payDistStart, payDistEnd]} type="PAYMENT" />;
+        return (
+          <div className="flex flex-col gap-6">
+            <DistributionChart
+              key={`payment-distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`}
+              data={paidBubble}
+              sortedCompanies={paidSorted}
+              dateRange={[payDistStart, payDistEnd]}
+              type="PAYMENT"
+              onBubbleClick={handleBubbleClick}
+            />
+            {selectedBubble && (
+              <PaymentDetailTable
+                data={drillDownData}
+                companyName={selectedBubble.companyName}
+                date={selectedBubble.weekStart}
+              />
+            )}
+          </div>
+        );
 
       default:
         return null;

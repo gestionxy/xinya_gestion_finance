@@ -7,9 +7,10 @@ interface Props {
   sortedCompanies: string[]; // Ordered by total amount (Small to Large for Y-axis Bottom to Top)
   dateRange: [Date, Date]; // Start and End date for the axis
   type?: 'PURCHASE' | 'PAYMENT'; // Distinguish between Purchase and Payment for labels
+  onBubbleClick?: (data: CompanyBubbleData) => void;
 }
 
-export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies, dateRange, type = 'PURCHASE' }) => {
+export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies, dateRange, type = 'PURCHASE', onBubbleClick }) => {
 
   // Recharts Scatter needs numeric X and Y.
   // X: Time (timestamp)
@@ -69,7 +70,20 @@ export const DistributionChart: React.FC<Props> = ({ data, sortedCompanies, date
           />
           <ZAxis type="number" dataKey="z" range={[50, 1000]} name="Amount" />
           <Tooltip content={<CustomBubbleTooltip />} cursor={{ strokeDasharray: '3 3' }} wrapperStyle={{ zIndex: 1000 }} />
-          <Scatter name="Purchases" data={processedData} fill="#06b6d4" fillOpacity={0.6} stroke="#fff" strokeWidth={1} />
+          <Scatter
+            name="Purchases"
+            data={processedData}
+            fill="#06b6d4"
+            fillOpacity={0.6}
+            stroke="#fff"
+            strokeWidth={1}
+            onClick={(data) => {
+              if (onBubbleClick && data && data.payload) {
+                onBubbleClick(data.payload);
+              }
+            }}
+            style={{ cursor: onBubbleClick ? 'pointer' : 'default' }}
+          />
         </ScatterChart>
       </ResponsiveContainer>
     </div>
