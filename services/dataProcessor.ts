@@ -70,9 +70,7 @@ export const getProcessedData = (data: PurchaseRecord[]): PurchaseRecord[] => {
 
   return data
     .filter(r => {
-      // 1.1 Exclude specific companies
-      if (['SLEEMAN', 'Arc-en-ciel'].includes(r.companyName)) return false;
-      // 1.2 Exclude void checks
+      // 1.1 Exclude void checks (keep this as general cleaning)
       if (r.invoiceAmount === 0 && (r.actualPaidAmount || 0) === 0) return false;
       return true;
     })
@@ -312,8 +310,8 @@ export const getCompanyBubbleData = (
 // ------------------------------------------------------------------
 
 export const getMonthlyPaidSummary = (processedData: PurchaseRecord[]): MonthlySummary[] => {
-  // Filter for valid paid records
-  const paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount);
+  // Filter for valid paid records (Check Date Exists and Actual Paid Amount is not null/undefined)
+  const paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount !== undefined && r.actualPaidAmount !== null);
 
   const grouped = paidData.reduce((acc, record) => {
     const date = parseISO(record.checkDate!);
@@ -339,7 +337,7 @@ export const getMonthlyPaidSummary = (processedData: PurchaseRecord[]): MonthlyS
 };
 
 export const getWeeklyPaidSummary = (processedData: PurchaseRecord[], selectedMonth?: string): WeeklySummary[] => {
-  let paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount);
+  let paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount !== undefined && r.actualPaidAmount !== null);
 
   if (selectedMonth) {
     paidData = paidData.filter(r => format(parseISO(r.checkDate!), 'yyyy-MM') === selectedMonth);
@@ -388,7 +386,7 @@ export const getPaidCompanyBubbleData = (
   dateRange: [Date, Date]
 ): { chartData: CompanyBubbleData[], sortedCompanies: string[] } => {
 
-  const paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount);
+  const paidData = processedData.filter(r => r.checkDate && r.actualPaidAmount !== undefined && r.actualPaidAmount !== null);
 
   const filtered = paidData.filter(r => {
     const d = parseISO(r.checkDate!);
