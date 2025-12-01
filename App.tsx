@@ -293,7 +293,7 @@ const App: React.FC = () => {
               <div className="p-2 bg-scifi-primary/20 rounded-lg">
                 <Activity className="w-6 h-6 text-scifi-primary" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-white">NOVA<span className="text-scifi-primary">{t.nav.brand}</span></span>
+              <span className="text-xl font-bold tracking-tight text-white">Xinya<span className="text-scifi-primary">{t.nav.brand}</span></span>
             </div>
 
             <div className="hidden md:flex items-center space-x-1">
