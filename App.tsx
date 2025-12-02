@@ -187,14 +187,24 @@ const App: React.FC = () => {
   // Drill-down Data
   const drillDownData = useMemo(() => {
     if (!selectedBubble) return [];
+
+    // Determine filter logic based on view
+    const isPaymentView = currentView === 'PAYMENT_DISTRIBUTION';
+
     return processedData.filter(r => {
       const isCompany = r.companyName === selectedBubble.companyName;
-      // Match Check Date (YYYY-MM-DD)
-      const checkDate = r.checkDate ? r.checkDate.slice(0, 10) : '';
-      const isDate = checkDate === selectedBubble.weekStart; // weekStart holds the date string in daily mode
-      return isCompany && isDate;
+
+      if (isPaymentView) {
+        // Match Check Date (YYYY-MM-DD)
+        const checkDate = r.checkDate ? r.checkDate.slice(0, 10) : '';
+        return isCompany && checkDate === selectedBubble.weekStart;
+      } else {
+        // Match Invoice Date (YYYY-MM-DD) for Purchase View
+        const invoiceDate = r.invoiceDate ? r.invoiceDate.slice(0, 10) : '';
+        return isCompany && invoiceDate === selectedBubble.weekStart;
+      }
     });
-  }, [selectedBubble, processedData]);
+  }, [selectedBubble, processedData, currentView]);
 
   const handleBubbleClick = (data: CompanyBubbleData) => {
     setSelectedBubble(data);
@@ -248,7 +258,24 @@ const App: React.FC = () => {
           [distStart, distEnd]
         );
         // Add mode to key to force re-render
-        return <DistributionChart key={`distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`} data={chartData} sortedCompanies={sortedCompanies} dateRange={[distStart, distEnd]} />;
+        return (
+          <div className="flex flex-col gap-6">
+            <DistributionChart
+              key={`distrib-${selectedDept}-${distribMode}-${selectedMonth}-${startDate}-${endDate}`}
+              data={chartData}
+              sortedCompanies={sortedCompanies}
+              dateRange={[distStart, distEnd]}
+              onBubbleClick={handleBubbleClick}
+            />
+            {selectedBubble && currentView === 'COMPANY_DISTRIBUTION' && (
+              <PaymentDetailTable
+                data={drillDownData}
+                companyName={selectedBubble.companyName}
+                date={selectedBubble.weekStart}
+              />
+            )}
+          </div>
+        );
 
       // --- Unpaid Module ---
       // --- Unpaid Module ---
