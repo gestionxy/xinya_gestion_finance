@@ -36,6 +36,17 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
             // If searching by company directly, ignore department filter
             const matchDept = searchMode === 'BY_DEPT' ? item.department === selectedDept : true;
             return matchCompany && matchDept;
+        }).sort((a, b) => {
+            // Sort by Invoice Date (Ascending)
+            const dateA = a.invoiceDate || '';
+            const dateB = b.invoiceDate || '';
+            if (dateA !== dateB) {
+                return dateA.localeCompare(dateB);
+            }
+            // Then by Invoice Number (Ascending)
+            const invoiceA = a.invoiceNumber || '';
+            const invoiceB = b.invoiceNumber || '';
+            return invoiceA.localeCompare(invoiceB, undefined, { numeric: true });
         });
     }, [unpaidSummary, selectedCompany, selectedDept, searchMode]);
 
@@ -124,8 +135,8 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
                                 setSelectedCompany('');
                             }}
                             className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${searchMode === 'BY_DEPT'
-                                    ? 'bg-scifi-danger text-white shadow-lg shadow-scifi-danger/20'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                ? 'bg-scifi-danger text-white shadow-lg shadow-scifi-danger/20'
+                                : 'text-gray-400 hover:text-white hover:bg-white/5'
                                 }`}
                         >
                             <PieChart className="w-4 h-4" />
@@ -139,8 +150,8 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
                                 setSelectedCompany('');
                             }}
                             className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${searchMode === 'BY_COMPANY'
-                                    ? 'bg-scifi-primary text-black shadow-lg shadow-scifi-primary/20'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                ? 'bg-scifi-primary text-black shadow-lg shadow-scifi-primary/20'
+                                : 'text-gray-400 hover:text-white hover:bg-white/5'
                                 }`}
                         >
                             <Building2 className="w-4 h-4" />
