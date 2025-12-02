@@ -193,18 +193,19 @@ const App: React.FC = () => {
 
     return processedData.filter(r => {
       const isCompany = r.companyName === selectedBubble.companyName;
+      const isDept = r.department === selectedDept;
 
       if (isPaymentView) {
         // Match Check Date (YYYY-MM-DD)
         const checkDate = r.checkDate ? r.checkDate.slice(0, 10) : '';
-        return isCompany && checkDate === selectedBubble.weekStart;
+        return isCompany && isDept && checkDate === selectedBubble.weekStart;
       } else {
         // Match Invoice Date (YYYY-MM-DD) for Purchase View
         const invoiceDate = r.invoiceDate ? r.invoiceDate.slice(0, 10) : '';
-        return isCompany && invoiceDate === selectedBubble.weekStart;
+        return isCompany && isDept && invoiceDate === selectedBubble.weekStart;
       }
     });
-  }, [selectedBubble, processedData, currentView]);
+  }, [selectedBubble, processedData, currentView, selectedDept]);
 
   const handleBubbleClick = (data: CompanyBubbleData) => {
     setSelectedBubble(data);
