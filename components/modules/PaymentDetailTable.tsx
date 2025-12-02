@@ -62,10 +62,10 @@ export const PaymentDetailTable: React.FC<Props> = ({ data, companyName, date })
                                         ${record.invoiceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                     <td className="px-4 py-3 font-mono text-right text-gray-400">
-                                        {record.tps ? `$${record.tps.toFixed(2)}` : '-'}
+                                        {record.tps !== undefined && record.tps !== null ? `$${record.tps.toFixed(2)}` : ''}
                                     </td>
                                     <td className="px-4 py-3 font-mono text-right text-gray-400">
-                                        {record.tvq ? `$${record.tvq.toFixed(2)}` : '-'}
+                                        {record.tvq !== undefined && record.tvq !== null ? `$${record.tvq.toFixed(2)}` : ''}
                                     </td>
                                     <td className="px-4 py-3 font-mono text-scifi-accent">{record.checkNumber || '-'}</td>
                                     <td className="px-4 py-3 font-mono text-right text-scifi-success">
@@ -81,7 +81,7 @@ export const PaymentDetailTable: React.FC<Props> = ({ data, companyName, date })
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
