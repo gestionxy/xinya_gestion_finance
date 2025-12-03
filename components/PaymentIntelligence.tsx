@@ -214,7 +214,7 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
         const totalDiff = paidHistoryList.reduce((sum, item) => sum + item.calculatedDifference, 0);
 
         return (
-            <div className="overflow-x-auto">
+            <div className="flex flex-col h-full">
                 <div className="mb-4 w-full md:w-1/3">
                     <SearchableSelect
                         label="🔍 请输入或选择公司名称查看已开支票信息："
@@ -243,51 +243,53 @@ export const PaymentIntelligence: React.FC<Props> = ({ forecastData, historyData
                             </div>
                         </div>
 
-                        <table className="w-full text-sm text-left text-gray-300">
-                            <thead className="text-xs text-gray-400 uppercase bg-[#1a1a1a]">
-                                <tr>
-                                    <th className="px-4 py-3">公司名称</th>
-                                    <th className="px-4 py-3">发票号</th>
-                                    <th className="px-4 py-3">发票日期</th>
-                                    <th className="px-4 py-3 text-right">发票金额</th>
-                                    <th className="px-4 py-3">付款支票号</th>
-                                    <th className="px-4 py-3 text-right">实际支付金额</th>
-                                    <th className="px-4 py-3 text-right">付款支票总额</th>
-                                    <th className="px-4 py-3">开支票日期</th>
-                                    <th className="px-4 py-3">银行对账日期</th>
-                                    <th className="px-4 py-3 text-right">付款差额</th>
-                                    <th className="px-4 py-3 text-right">累计付款差额</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paidHistoryList.map((item, idx) => (
-                                    <tr key={idx} className="border-b border-gray-800 hover:bg-white/5">
-                                        <td className="px-4 py-3 font-medium text-white">{item.companyName}</td>
-                                        <td className="px-4 py-3 font-mono text-gray-400">{item.invoiceNumber}</td>
-                                        <td className="px-4 py-3 font-mono">{item.invoiceDate.slice(0, 10)}</td>
-                                        <td className="px-4 py-3 text-right font-mono text-white">${item.invoiceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td className="px-4 py-3 font-mono text-scifi-primary">{item.checkNumber}</td>
-                                        <td className="px-4 py-3 text-right font-mono text-white">${item.actualPaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td className="px-4 py-3 text-right font-mono text-scifi-success">${(item.checkTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td className="px-4 py-3 font-mono">{item.checkDate?.slice(0, 10)}</td>
-                                        <td className="px-4 py-3 font-mono">{item.bankReconciliationDate?.slice(0, 10)}</td>
-                                        <td className={`px-4 py-3 text-right font-mono font-bold ${item.calculatedDifference > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                            {item.calculatedDifference.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-mono text-gray-400 font-bold">
-                                            {item.cumulativeDifference.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {paidHistoryList.length === 0 && (
+                        <div className="overflow-auto max-h-[600px] border border-gray-800 rounded-lg relative">
+                            <table className="w-full text-sm text-left text-gray-300">
+                                <thead className="text-xs text-gray-400 uppercase bg-[#1a1a1a] sticky top-0 z-10 shadow-md">
                                     <tr>
-                                        <td colSpan={11} className="px-4 py-8 text-center text-gray-500 italic">
-                                            {t.alerts.noData}
-                                        </td>
+                                        <th className="px-4 py-3 bg-[#1a1a1a]">公司名称</th>
+                                        <th className="px-4 py-3 bg-[#1a1a1a]">发票号</th>
+                                        <th className="px-4 py-3 bg-[#1a1a1a]">发票日期</th>
+                                        <th className="px-4 py-3 text-right bg-[#1a1a1a]">发票金额</th>
+                                        <th className="px-4 py-3 bg-[#1a1a1a]">付款支票号</th>
+                                        <th className="px-4 py-3 text-right bg-[#1a1a1a]">实际支付金额</th>
+                                        <th className="px-4 py-3 text-right bg-[#1a1a1a]">付款支票总额</th>
+                                        <th className="px-4 py-3 bg-[#1a1a1a]">开支票日期</th>
+                                        <th className="px-4 py-3 bg-[#1a1a1a]">银行对账日期</th>
+                                        <th className="px-4 py-3 text-right bg-[#1a1a1a]">付款差额</th>
+                                        <th className="px-4 py-3 text-right bg-[#1a1a1a]">累计付款差额</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {paidHistoryList.map((item, idx) => (
+                                        <tr key={idx} className="border-b border-gray-800 hover:bg-white/5">
+                                            <td className="px-4 py-3 font-medium text-white whitespace-nowrap">{item.companyName}</td>
+                                            <td className="px-4 py-3 font-mono text-gray-400 whitespace-nowrap">{item.invoiceNumber}</td>
+                                            <td className="px-4 py-3 font-mono whitespace-nowrap">{item.invoiceDate.slice(0, 10)}</td>
+                                            <td className="px-4 py-3 text-right font-mono text-white whitespace-nowrap">${item.invoiceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="px-4 py-3 font-mono text-scifi-primary whitespace-nowrap">{item.checkNumber}</td>
+                                            <td className="px-4 py-3 text-right font-mono text-white whitespace-nowrap">${item.actualPaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="px-4 py-3 text-right font-mono text-scifi-success whitespace-nowrap">${(item.checkTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="px-4 py-3 font-mono whitespace-nowrap">{item.checkDate?.slice(0, 10)}</td>
+                                            <td className="px-4 py-3 font-mono whitespace-nowrap">{item.bankReconciliationDate?.slice(0, 10)}</td>
+                                            <td className={`px-4 py-3 text-right font-mono font-bold whitespace-nowrap ${item.calculatedDifference > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                                {item.calculatedDifference.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono text-gray-400 font-bold whitespace-nowrap">
+                                                {item.cumulativeDifference.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {paidHistoryList.length === 0 && (
+                                        <tr>
+                                            <td colSpan={11} className="px-4 py-8 text-center text-gray-500 italic">
+                                                {t.alerts.noData}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </>
                 )}
             </div>
