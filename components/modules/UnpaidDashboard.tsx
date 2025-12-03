@@ -75,6 +75,15 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
 
     const renderDetailTable = () => (
         <div className="overflow-x-auto">
+            {/* Legend/Hint for Difference values */}
+            <div className="mb-4 p-3 rounded-lg bg-blue-900/20 border border-blue-500/30 text-blue-200 font-mono text-sm flex items-center gap-3">
+                <AlertTriangle className="w-4 h-4 text-blue-400" />
+                <span>
+                    提示：差额及累计未付金额 <span className="text-scifi-success font-bold mx-1">负 (-)</span> = 我方多付，
+                    <span className="text-scifi-danger font-bold mx-1">正 (+)</span> = 我方应付
+                </span>
+            </div>
+
             <table className="w-full text-sm text-left">
                 <thead className="text-xs text-scifi-accent uppercase bg-scifi-primary/10 border-b border-scifi-primary/20 font-mono">
                     <tr>
