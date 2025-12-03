@@ -31,7 +31,7 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
     const detailData = useMemo(() => {
         if (!selectedCompany || !unpaidSummary.details) return [];
 
-        return unpaidSummary.details.filter(item => {
+        const sorted = unpaidSummary.details.filter(item => {
             const matchCompany = item.companyName === selectedCompany;
             // If searching by company directly, ignore department filter
             const matchDept = searchMode === 'BY_DEPT' ? item.department === selectedDept : true;
@@ -47,6 +47,20 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
             const invoiceA = a.invoiceNumber || '';
             const invoiceB = b.invoiceNumber || '';
             return invoiceA.localeCompare(invoiceB, undefined, { numeric: true });
+        });
+
+        // Calculate cumulative unpaid
+        let runningTotal = 0;
+        return sorted.map(item => {
+            const invoiceAmount = item.invoiceAmount || 0;
+            const actualPaid = item.actualPaidAmount || 0;
+            const difference = invoiceAmount - actualPaid;
+            runningTotal += difference;
+            return {
+                ...item,
+                calculatedDifference: difference,
+                cumulativeUnpaid: runningTotal
+            };
         });
     }, [unpaidSummary, selectedCompany, selectedDept, searchMode]);
 
@@ -71,10 +85,13 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
                         <th className="px-6 py-4 text-right">发票金额</th>
                         <th className="px-6 py-4 text-right">TPS</th>
                         <th className="px-6 py-4 text-right">TVQ</th>
+                        <th className="px-6 py-4 text-right">实际支付金额</th>
+                        <th className="px-6 py-4 text-right">差额</th>
+                        <th className="px-6 py-4 text-right">累计未付金额</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-scifi-border/50">
-                    {detailData.map((row, index) => (
+                    {detailData.map((row: any, index) => (
                         <tr key={index} className="hover:bg-white/5 transition-colors group">
                             <td className="px-6 py-4 font-medium text-white group-hover:text-scifi-primary transition-colors">
                                 {row.companyName}
@@ -90,6 +107,15 @@ export const UnpaidDashboard: React.FC<UnpaidDashboardProps> = ({ unpaidSummary,
                             </td>
                             <td className="px-6 py-4 text-right font-mono text-gray-500">
                                 ${(row.tvq || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono text-white">
+                                ${(row.actualPaidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono font-bold text-scifi-warning">
+                                ${(row.calculatedDifference || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono font-bold text-scifi-danger">
+                                ${(row.cumulativeUnpaid || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                         </tr>
                     ))}
