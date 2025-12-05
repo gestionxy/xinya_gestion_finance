@@ -31,7 +31,14 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ label, options, select
         if (isOpen) {
             updatePosition();
             // Close on scroll or resize to avoid detached UI
-            const handleScroll = () => setIsOpen(false);
+            const handleScroll = (event: Event) => {
+                // Prevent closing if scrolling inside the dropdown
+                if (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) {
+                    return;
+                }
+                setIsOpen(false);
+            };
+
             window.addEventListener('scroll', handleScroll, true);
             window.addEventListener('resize', handleScroll);
             return () => {
